@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+'use client';
 
-const ScalpingDashboard = () => {
+import { useState, useEffect } from 'react';
+
+const ScalpingDashboard = ({ pin }) => {
   const [positions, setPositions] = useState(() => {
+    if (typeof window === 'undefined') return [];
     try {
       const saved = localStorage.getItem('scalper-positions-v2');
       return saved ? JSON.parse(saved) : [];
@@ -9,6 +12,7 @@ const ScalpingDashboard = () => {
   });
 
   const [history, setHistory] = useState(() => {
+    if (typeof window === 'undefined') return [];
     try {
       const saved = localStorage.getItem('scalper-history-v2');
       return saved ? JSON.parse(saved) : [];
@@ -19,20 +23,86 @@ const ScalpingDashboard = () => {
   const [closing, setClosing] = useState(null);
   const [closeForm, setCloseForm] = useState({ proceeds: '', fee: '' });
   const [priceEdits, setPriceEdits] = useState({});
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState(null);
+  const [balance, setBalance] = useState(null);
 
   useEffect(() => {
-    localStorage.setItem('scalper-positions-v2', JSON.stringify(positions));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('scalper-positions-v2', JSON.stringify(positions));
+    }
   }, [positions]);
 
   useEffect(() => {
-    localStorage.setItem('scalper-history-v2', JSON.stringify(history));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('scalper-history-v2', JSON.stringify(history));
+    }
   }, [history]);
+
+  const syncPositions = async () => {
+    setSyncing(true);
+    setSyncError(null);
+
+    try {
+      const res = await fetch(`/api/positions?pin=${encodeURIComponent(pin)}`);
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || `API error: ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      // Transform Polymarket positions to our format
+      // The exact structure depends on Polymarket's response
+      // This is a reasonable guess based on common API patterns
+      if (Array.isArray(data)) {
+        const transformed = data.map((p, idx) => ({
+          id: p.id || p.token_id || Date.now() + idx,
+          market: p.market_name || p.title || p.market || 'Unknown Market',
+          side: p.outcome || p.side || 'Unknown',
+          cost: parseFloat(p.cost_basis || p.avg_price * p.size || 0),
+          shares: parseFloat(p.size || p.shares || p.quantity || 0),
+          entryPrice: parseFloat(p.avg_price || p.entry_price || 0),
+          currentPrice: parseFloat(p.current_price || p.price || p.avg_price || 0),
+          openedAt: p.created_at || p.opened_at || new Date().toISOString(),
+          tokenId: p.token_id || p.asset_id || null, // For price syncing
+          synced: true, // Mark as synced from API
+        })).filter(p => p.shares > 0); // Only include positions with shares
+
+        // Merge with existing manual positions (keep manual ones, update synced ones)
+        setPositions(prev => {
+          const manual = prev.filter(p => !p.synced);
+          return [...transformed, ...manual];
+        });
+      }
+    } catch (err) {
+      setSyncError(err.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const syncBalance = async () => {
+    try {
+      const res = await fetch(`/api/balance?pin=${encodeURIComponent(pin)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setBalance(data.balance || data.cash || data.available || null);
+      }
+    } catch {
+      // Ignore balance errors
+    }
+  };
+
+  const syncAll = async () => {
+    await Promise.all([syncPositions(), syncBalance()]);
+  };
 
   const addPosition = () => {
     const cost = parseFloat(newPos.cost);
     const shares = parseFloat(newPos.shares);
     if (!newPos.market.trim() || !newPos.side.trim() || isNaN(cost) || isNaN(shares) || shares === 0) return;
-    
+
     const pos = {
       id: Date.now(),
       market: newPos.market.trim(),
@@ -42,6 +112,7 @@ const ScalpingDashboard = () => {
       entryPrice: cost / shares,
       currentPrice: cost / shares,
       openedAt: new Date().toISOString(),
+      synced: false, // Manual position
     };
     setPositions([pos, ...positions]);
     setNewPos({ market: '', side: '', cost: '', shares: '' });
@@ -58,7 +129,7 @@ const ScalpingDashboard = () => {
     const proceeds = parseFloat(closeForm.proceeds) || 0;
     const fee = parseFloat(closeForm.fee) || 0;
     const netProceeds = proceeds - fee;
-    
+
     const trade = {
       ...closing,
       closedAt: new Date().toISOString(),
@@ -71,7 +142,7 @@ const ScalpingDashboard = () => {
       hindsightValue: null,
       hindsightDiff: null,
     };
-    
+
     setHistory([trade, ...history]);
     setPositions(positions.filter(p => p.id !== closing.id));
     setClosing(null);
@@ -113,8 +184,24 @@ const ScalpingDashboard = () => {
     <div style={s.page}>
       <div style={s.container}>
         <header style={s.header}>
-          <h1 style={s.title}>scalper</h1>
+          <div style={s.headerTop}>
+            <h1 style={s.title}>scalper</h1>
+            <button
+              style={s.syncBtn}
+              onClick={syncAll}
+              disabled={syncing}
+            >
+              {syncing ? 'syncing...' : 'sync'}
+            </button>
+          </div>
+          {syncError && <div style={s.syncError}>{syncError}</div>}
           <div style={s.stats}>
+            {balance !== null && (
+              <>
+                <span>cash: <b>${fmt(balance)}</b></span>
+                <span style={s.statDivider}>|</span>
+              </>
+            )}
             <span>unrealized: <b style={{ color: totalUnrealized >= 0 ? '#080' : '#a00' }}>${fmt(totalUnrealized, true)}</b></span>
             <span style={s.statDivider}>|</span>
             <span>realized: <b style={{ color: totalRealized >= 0 ? '#080' : '#a00' }}>${fmt(totalRealized, true)}</b></span>
@@ -188,7 +275,10 @@ const ScalpingDashboard = () => {
                   const pnl = value - p.cost;
                   return (
                     <tr key={p.id} style={s.tr}>
-                      <td style={s.td}>{p.market}</td>
+                      <td style={s.td}>
+                        {p.market}
+                        {p.synced && <span style={s.syncedBadge}>api</span>}
+                      </td>
                       <td style={s.td}>{p.side}</td>
                       <td style={s.tdR}>{p.shares}</td>
                       <td style={s.tdR}>{(p.entryPrice * 100).toFixed(1)}</td>
@@ -297,8 +387,8 @@ const ScalpingDashboard = () => {
                         </span>
                       ) : (
                         <span style={{ color: t.hindsightDiff <= 0 ? '#080' : '#a00' }}>
-                          {t.hindsightDiff <= 0 
-                            ? `saved $${fmt(Math.abs(t.hindsightDiff))}` 
+                          {t.hindsightDiff <= 0
+                            ? `saved $${fmt(Math.abs(t.hindsightDiff))}`
                             : `left $${fmt(t.hindsightDiff)}`}
                         </span>
                       )}
@@ -311,7 +401,7 @@ const ScalpingDashboard = () => {
         </section>
 
         <footer style={s.footer}>
-          v0.2 · data in localStorage
+          v0.3 · data in localStorage · click sync to fetch from polymarket
         </footer>
       </div>
     </div>
@@ -336,11 +426,32 @@ const s = {
     paddingBottom: 12,
     marginBottom: 24,
   },
+  headerTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   title: {
     margin: 0,
     fontSize: 24,
     fontWeight: 400,
     letterSpacing: 2,
+  },
+  syncBtn: {
+    padding: '6px 16px',
+    border: '1px solid #222',
+    background: 'transparent',
+    fontFamily: 'inherit',
+    fontSize: 12,
+    cursor: 'pointer',
+  },
+  syncError: {
+    marginTop: 8,
+    padding: '6px 10px',
+    background: '#fee',
+    border: '1px solid #a00',
+    color: '#a00',
+    fontSize: 11,
   },
   stats: {
     marginTop: 8,
@@ -349,6 +460,14 @@ const s = {
   statDivider: {
     margin: '0 12px',
     color: '#999',
+  },
+  syncedBadge: {
+    marginLeft: 6,
+    padding: '1px 4px',
+    background: '#e0e0d8',
+    fontSize: 9,
+    color: '#666',
+    verticalAlign: 'middle',
   },
   section: {
     marginBottom: 32,
