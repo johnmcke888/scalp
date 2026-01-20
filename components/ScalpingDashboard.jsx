@@ -53,28 +53,42 @@ const ScalpingDashboard = ({ pin }) => {
       const data = await res.json();
 
       // Transform Polymarket positions to our format
-      // The exact structure depends on Polymarket's response
-      // This is a reasonable guess based on common API patterns
-      if (Array.isArray(data)) {
-        const transformed = data.map((p, idx) => ({
-          id: p.id || p.token_id || Date.now() + idx,
-          market: p.market_name || p.title || p.market || 'Unknown Market',
-          side: p.outcome || p.side || 'Unknown',
-          cost: parseFloat(p.cost_basis || p.avg_price * p.size || 0),
-          shares: parseFloat(p.size || p.shares || p.quantity || 0),
-          entryPrice: parseFloat(p.avg_price || p.entry_price || 0),
-          currentPrice: parseFloat(p.current_price || p.price || p.avg_price || 0),
-          openedAt: p.created_at || p.opened_at || new Date().toISOString(),
-          tokenId: p.token_id || p.asset_id || null, // For price syncing
-          synced: true, // Mark as synced from API
-        })).filter(p => p.shares > 0); // Only include positions with shares
+      // Polymarket returns { positions: { slug: positionData, ... } }
+      const transformPositions = (data) => {
+        if (!data.positions || typeof data.positions !== 'object') {
+          return [];
+        }
 
-        // Merge with existing manual positions (keep manual ones, update synced ones)
-        setPositions(prev => {
-          const manual = prev.filter(p => !p.synced);
-          return [...transformed, ...manual];
-        });
-      }
+        return Object.entries(data.positions).map(([slug, pos]) => {
+          // Use Math.abs because negative values are internal CLOB accounting
+          // Polymarket US has no short selling - all positions are longs
+          const shares = Math.abs(parseFloat(pos.netPosition));
+          const cost = parseFloat(pos.cost?.value || 0);
+          const currentValue = parseFloat(pos.cashValue?.value || 0);
+
+          return {
+            id: slug,
+            market: pos.marketMetadata?.title || slug,
+            side: pos.marketMetadata?.outcome || 'Unknown',
+            shares: shares,
+            cost: cost,
+            entryPrice: shares > 0 ? cost / shares : 0,
+            currentPrice: shares > 0 ? currentValue / shares : 0,
+            currentValue: currentValue,
+            openedAt: pos.updateTime || new Date().toISOString(),
+            synced: true, // Mark as synced from API
+            source: 'api',
+          };
+        }).filter(p => p.shares > 0); // Only include positions with shares
+      };
+
+      const transformed = transformPositions(data);
+
+      // Merge with existing manual positions (keep manual ones, update synced ones)
+      setPositions(prev => {
+        const manual = prev.filter(p => !p.synced);
+        return [...transformed, ...manual];
+      });
     } catch (err) {
       setSyncError(err.message);
     } finally {
