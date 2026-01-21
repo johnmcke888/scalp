@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { validatePin } from '@/lib/polymarket';
 
-// Polymarket US gateway for market data including bid/ask
+// Polymarket US gateway for market data (prices by outcome)
 const POLYMARKET_GATEWAY = 'https://gateway.polymarket.us/v1/markets';
 
 // Simple in-memory cache (5 second TTL)
@@ -59,24 +59,30 @@ export async function GET(request) {
       throw new Error(`Gateway API error: ${response.status} - ${errorText}`);
     }
 
-    const markets = await response.json();
+    const data = await response.json();
 
     // Transform response to map of slug -> price data
-    // The API returns an array of market objects
+    // The API returns { markets: [{ slug, marketSides: [{ description, price }] }] }
     const prices = {};
+    const marketsArray = data.markets || (Array.isArray(data) ? data : []);
 
-    if (Array.isArray(markets)) {
-      markets.forEach(market => {
-        if (market.slug) {
-          prices[market.slug] = {
-            bestBid: parseFloat(market.bestBid) || null,
-            bestAsk: parseFloat(market.bestAsk) || null,
-            spread: parseFloat(market.spread) || null,
-            lastTradePrice: parseFloat(market.lastTradePrice) || null,
-          };
+    marketsArray.forEach(market => {
+      if (market.slug) {
+        // Parse marketSides to get prices by outcome description
+        const sides = {};
+        if (Array.isArray(market.marketSides)) {
+          market.marketSides.forEach(side => {
+            if (side.description) {
+              sides[side.description] = parseFloat(side.price) || null;
+            }
+          });
         }
-      });
-    }
+
+        prices[market.slug] = {
+          sides, // { "Rockets": 0.434, "Minutemen": 0.597 }
+        };
+      }
+    });
 
     const result = { prices };
 

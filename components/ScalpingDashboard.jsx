@@ -93,8 +93,7 @@ const ScalpingDashboard = ({ pin }) => {
             entryPrice: shares > 0 ? cost / shares : 0,
             currentPrice: shares > 0 ? currentValue / shares : 0,
             currentValue: currentValue,
-            bestBid: null,
-            bestAsk: null,
+            marketPrice: null, // Price from market API
             openedAt: pos.updateTime || new Date().toISOString(),
             synced: true, // Mark as synced from API
             source: 'api',
@@ -104,20 +103,23 @@ const ScalpingDashboard = ({ pin }) => {
 
       const transformed = transformPositions(data);
 
-      // Fetch bid/ask prices for all synced positions
+      // Fetch market prices for all synced positions
       const slugs = transformed.map(p => p.id);
       const prices = await fetchPrices(slugs);
 
-      // Update positions with bid/ask data
+      // Update positions with market price data
+      // Match position's side (e.g., "Minutemen") to get the correct price
       const withPrices = transformed.map(p => {
         const priceData = prices[p.id];
-        if (priceData) {
-          return {
-            ...p,
-            bestBid: priceData.bestBid,
-            bestAsk: priceData.bestAsk,
-            currentPrice: priceData.bestBid || p.currentPrice, // Use bid as current price
-          };
+        if (priceData && priceData.sides) {
+          const sidePrice = priceData.sides[p.side];
+          if (sidePrice !== null && sidePrice !== undefined) {
+            return {
+              ...p,
+              marketPrice: sidePrice,
+              currentPrice: sidePrice,
+            };
+          }
         }
         return p;
       });
@@ -217,8 +219,8 @@ const ScalpingDashboard = ({ pin }) => {
   };
 
   const totalUnrealized = positions.reduce((sum, p) => {
-    const bidPrice = p.bestBid !== null ? p.bestBid : p.currentPrice;
-    return sum + (p.shares * bidPrice - p.cost);
+    const price = p.marketPrice !== null ? p.marketPrice : p.currentPrice;
+    return sum + (p.shares * price - p.cost);
   }, 0);
   const totalRealized = history.reduce((sum, t) => sum + t.realizedPnL, 0);
   const resolvedTrades = history.filter(t => t.resolved);
@@ -341,12 +343,10 @@ const ScalpingDashboard = ({ pin }) => {
           ) : (
             <div style={s.positionCards}>
               {positions.map(p => {
-                // Use bestBid for value calculation (conservative - what you'd actually get)
-                const bidPrice = p.bestBid !== null ? p.bestBid : p.currentPrice;
-                const askPrice = p.bestAsk !== null ? p.bestAsk : null;
-                const value = p.shares * bidPrice;
+                // Use marketPrice from API or fall back to currentPrice
+                const price = p.marketPrice !== null ? p.marketPrice : p.currentPrice;
+                const value = p.shares * price;
                 const pnl = value - p.cost;
-                const spread = (bidPrice && askPrice) ? ((askPrice - bidPrice) * 100).toFixed(1) : null;
 
                 return (
                   <div key={p.id} style={s.positionCard}>
@@ -358,7 +358,7 @@ const ScalpingDashboard = ({ pin }) => {
                       <button
                         style={s.cashOutBtn}
                         onClick={() => {
-                          const estimatedProceeds = (p.shares * bidPrice).toFixed(2);
+                          const estimatedProceeds = (p.shares * price).toFixed(2);
                           setClosing(p);
                           setCloseForm({ proceeds: estimatedProceeds, fee: '' });
                         }}
@@ -371,8 +371,8 @@ const ScalpingDashboard = ({ pin }) => {
                     </div>
                     <div style={s.cardMetrics}>
                       <div style={s.metricGroup}>
-                        <span style={s.metricLabel}>NOW:</span>
-                        <span style={s.metricValue}>{(bidPrice * 100).toFixed(1)}¢</span>
+                        <span style={s.metricLabel}>PRICE:</span>
+                        <span style={s.metricValue}>{(price * 100).toFixed(1)}¢</span>
                       </div>
                       <div style={s.metricGroup}>
                         <span style={s.metricLabel}>VALUE:</span>
@@ -385,14 +385,6 @@ const ScalpingDashboard = ({ pin }) => {
                         </span>
                       </div>
                     </div>
-                    {p.synced && (p.bestBid !== null || p.bestAsk !== null) && (
-                      <div style={s.cardSpread}>
-                        bid: {p.bestBid !== null ? `${(p.bestBid * 100).toFixed(1)}¢` : '-'}
-                        {' · '}
-                        ask: {p.bestAsk !== null ? `${(p.bestAsk * 100).toFixed(1)}¢` : '-'}
-                        {spread && ` · spread: ${spread}¢`}
-                      </div>
-                    )}
                     {!p.synced && (
                       <div style={s.cardManualPrice}>
                         <span style={s.metricLabel}>current ¢:</span>
@@ -421,8 +413,8 @@ const ScalpingDashboard = ({ pin }) => {
 
         {/* Close Modal */}
         {closing && (() => {
-          const bidPrice = closing.bestBid !== null ? closing.bestBid : closing.currentPrice;
-          const estimatedValue = closing.shares * bidPrice;
+          const price = closing.marketPrice !== null ? closing.marketPrice : closing.currentPrice;
+          const estimatedValue = closing.shares * price;
           const estimatedPnl = estimatedValue - closing.cost;
           return (
             <div style={s.overlay} onClick={() => setClosing(null)}>
@@ -439,7 +431,7 @@ const ScalpingDashboard = ({ pin }) => {
                   </div>
                 </div>
                 <div style={s.modalRow}>
-                  <label style={s.modalLabel}>actual proceeds $ (pre-filled from bid)</label>
+                  <label style={s.modalLabel}>actual proceeds $ (pre-filled from market price)</label>
                   <input
                     style={s.modalInput}
                     type="number"
