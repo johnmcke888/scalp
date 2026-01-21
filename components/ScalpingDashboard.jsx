@@ -26,6 +26,7 @@ const ScalpingDashboard = ({ pin }) => {
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState(null);
   const [balance, setBalance] = useState(null);
+  const [lastSynced, setLastSynced] = useState(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -147,6 +148,7 @@ const ScalpingDashboard = ({ pin }) => {
 
   const syncAll = async () => {
     await Promise.all([syncPositions(), syncBalance()]);
+    setLastSynced(new Date());
   };
 
   const addPosition = () => {
@@ -234,34 +236,63 @@ const ScalpingDashboard = ({ pin }) => {
     return (p > 0 ? '+' : '') + p.toFixed(1);
   };
 
+  const formatTimeAgo = (date) => {
+    if (!date) return null;
+    const seconds = Math.floor((new Date() - date) / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes}m ago`;
+  };
+
+  const [timeAgo, setTimeAgo] = useState(null);
+
+  // Update time ago every second
+  useEffect(() => {
+    if (!lastSynced) return;
+    const interval = setInterval(() => {
+      setTimeAgo(formatTimeAgo(lastSynced));
+    }, 1000);
+    setTimeAgo(formatTimeAgo(lastSynced));
+    return () => clearInterval(interval);
+  }, [lastSynced]);
+
   return (
     <div style={s.page}>
       <div style={s.container}>
         <header style={s.header}>
           <div style={s.headerTop}>
             <h1 style={s.title}>scalper</h1>
-            <button
-              style={s.syncBtn}
-              onClick={syncAll}
-              disabled={syncing}
-            >
-              {syncing ? 'syncing...' : 'sync'}
-            </button>
+            <div style={s.headerRight}>
+              {timeAgo && (
+                <span style={s.lastUpdated}>{timeAgo}</span>
+              )}
+              <button
+                style={s.syncBtn}
+                onClick={syncAll}
+                disabled={syncing}
+              >
+                {syncing ? 'syncing...' : 'sync'}
+              </button>
+            </div>
           </div>
           {syncError && <div style={s.syncError}>{syncError}</div>}
-          <div style={s.stats}>
+          <div style={s.heroSection}>
+            <div style={{ ...s.heroPnL, color: totalUnrealized >= 0 ? '#080' : '#a00' }}>
+              {totalUnrealized >= 0 ? '+' : ''}{fmt(totalUnrealized)}
+            </div>
+            <div style={s.heroLabel}>unrealized P&L</div>
+          </div>
+          <div style={s.statsRow}>
             {balance !== null && (
               <>
-                <span>cash: <b>${fmt(balance)}</b></span>
-                <span style={s.statDivider}>|</span>
+                <span style={s.statItem}>cash: <b>${fmt(balance)}</b></span>
+                <span style={s.statDot}>·</span>
               </>
             )}
-            <span>unrealized: <b style={{ color: totalUnrealized >= 0 ? '#080' : '#a00' }}>${fmt(totalUnrealized, true)}</b></span>
-            <span style={s.statDivider}>|</span>
-            <span>realized: <b style={{ color: totalRealized >= 0 ? '#080' : '#a00' }}>${fmt(totalRealized, true)}</b></span>
-            <span style={s.statDivider}>|</span>
-            <span>hindsight: <b style={{ color: totalHindsight <= 0 ? '#080' : '#a00' }}>
-              {totalHindsight <= 0 ? '↑' : '↓'} ${fmt(Math.abs(totalHindsight))}
+            <span style={s.statItem}>realized: <b style={{ color: totalRealized >= 0 ? '#080' : '#a00' }}>${fmt(totalRealized, true)}</b></span>
+            <span style={s.statDot}>·</span>
+            <span style={s.statItem}>hindsight: <b style={{ color: totalHindsight <= 0 ? '#080' : '#a00' }}>
+              {totalHindsight <= 0 ? '↑' : '↓'}${fmt(Math.abs(totalHindsight))}
             </b></span>
           </div>
         </header>
@@ -308,117 +339,140 @@ const ScalpingDashboard = ({ pin }) => {
           {positions.length === 0 ? (
             <div style={s.empty}>no open positions</div>
           ) : (
-            <table style={s.table}>
-              <thead>
-                <tr>
-                  <th style={s.th}>market</th>
-                  <th style={s.th}>side</th>
-                  <th style={s.thR}>shares</th>
-                  <th style={s.thR}>entry ¢</th>
-                  <th style={s.thR}>cost</th>
-                  <th style={s.thR}>bid ¢</th>
-                  <th style={s.thR}>ask ¢</th>
-                  <th style={s.thR}>value</th>
-                  <th style={s.thR}>p&l</th>
-                  <th style={s.thR}>%</th>
-                  <th style={s.th}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {positions.map(p => {
-                  // Use bestBid for value calculation (conservative - what you'd actually get)
-                  const bidPrice = p.bestBid !== null ? p.bestBid : p.currentPrice;
-                  const value = p.shares * bidPrice;
-                  const pnl = value - p.cost;
-                  return (
-                    <tr key={p.id} style={s.tr}>
-                      <td style={s.td}>
+            <div style={s.positionCards}>
+              {positions.map(p => {
+                // Use bestBid for value calculation (conservative - what you'd actually get)
+                const bidPrice = p.bestBid !== null ? p.bestBid : p.currentPrice;
+                const askPrice = p.bestAsk !== null ? p.bestAsk : null;
+                const value = p.shares * bidPrice;
+                const pnl = value - p.cost;
+                const spread = (bidPrice && askPrice) ? ((askPrice - bidPrice) * 100).toFixed(1) : null;
+
+                return (
+                  <div key={p.id} style={s.positionCard}>
+                    <div style={s.cardHeader}>
+                      <div style={s.cardTitle}>
                         {p.market}
                         {p.synced && <span style={s.syncedBadge}>api</span>}
-                      </td>
-                      <td style={s.td}>{p.side}</td>
-                      <td style={s.tdR}>{p.shares}</td>
-                      <td style={s.tdR}>{(p.entryPrice * 100).toFixed(1)}</td>
-                      <td style={s.tdR}>${fmt(p.cost)}</td>
-                      <td style={s.tdR}>
-                        {p.synced && p.bestBid !== null ? (
-                          <span>{(p.bestBid * 100).toFixed(1)}</span>
-                        ) : (
-                          <input
-                            style={s.priceInput}
-                            type="number"
-                            step="0.001"
-                            value={priceEdits[p.id] !== undefined ? priceEdits[p.id] : p.currentPrice}
-                            onChange={e => setPriceEdits({ ...priceEdits, [p.id]: e.target.value })}
-                            onBlur={e => {
-                              updateCurrentPrice(p.id, e.target.value);
-                              setPriceEdits({ ...priceEdits, [p.id]: undefined });
-                            }}
-                          />
-                        )}
-                      </td>
-                      <td style={s.tdR}>
-                        {p.synced && p.bestAsk !== null ? (
-                          <span>{(p.bestAsk * 100).toFixed(1)}</span>
-                        ) : (
-                          <span style={{ color: '#999' }}>-</span>
-                        )}
-                      </td>
-                      <td style={s.tdR}>${fmt(value)}</td>
-                      <td style={{ ...s.tdR, color: pnl >= 0 ? '#080' : '#a00', fontWeight: 600 }}>
-                        ${fmt(pnl, true)}
-                      </td>
-                      <td style={{ ...s.tdR, color: pnl >= 0 ? '#080' : '#a00' }}>
-                        {pct(pnl, p.cost)}%
-                      </td>
-                      <td style={s.td}>
-                        <button style={s.btnSmall} onClick={() => setClosing(p)}>sell</button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+                      <button
+                        style={s.cashOutBtn}
+                        onClick={() => {
+                          const estimatedProceeds = (p.shares * bidPrice).toFixed(2);
+                          setClosing(p);
+                          setCloseForm({ proceeds: estimatedProceeds, fee: '' });
+                        }}
+                      >
+                        CASH OUT
+                      </button>
+                    </div>
+                    <div style={s.cardSubtitle}>
+                      {p.side} · {p.shares} shares @ {(p.entryPrice * 100).toFixed(1)}¢
+                    </div>
+                    <div style={s.cardMetrics}>
+                      <div style={s.metricGroup}>
+                        <span style={s.metricLabel}>NOW:</span>
+                        <span style={s.metricValue}>{(bidPrice * 100).toFixed(1)}¢</span>
+                      </div>
+                      <div style={s.metricGroup}>
+                        <span style={s.metricLabel}>VALUE:</span>
+                        <span style={s.metricValue}>${fmt(value)}</span>
+                      </div>
+                      <div style={s.metricGroup}>
+                        <span style={s.metricLabel}>P&L:</span>
+                        <span style={{ ...s.pnlValue, color: pnl >= 0 ? '#080' : '#a00' }}>
+                          {pnl >= 0 ? '+' : ''}${fmt(Math.abs(pnl))} ({pct(pnl, p.cost)}%)
+                        </span>
+                      </div>
+                    </div>
+                    {p.synced && (p.bestBid !== null || p.bestAsk !== null) && (
+                      <div style={s.cardSpread}>
+                        bid: {p.bestBid !== null ? `${(p.bestBid * 100).toFixed(1)}¢` : '-'}
+                        {' · '}
+                        ask: {p.bestAsk !== null ? `${(p.bestAsk * 100).toFixed(1)}¢` : '-'}
+                        {spread && ` · spread: ${spread}¢`}
+                      </div>
+                    )}
+                    {!p.synced && (
+                      <div style={s.cardManualPrice}>
+                        <span style={s.metricLabel}>current ¢:</span>
+                        <input
+                          style={s.priceInput}
+                          type="number"
+                          step="0.1"
+                          value={priceEdits[p.id] !== undefined ? priceEdits[p.id] : (p.currentPrice * 100).toFixed(1)}
+                          onChange={e => setPriceEdits({ ...priceEdits, [p.id]: e.target.value })}
+                          onBlur={e => {
+                            const cents = parseFloat(e.target.value);
+                            if (!isNaN(cents)) {
+                              updateCurrentPrice(p.id, cents / 100);
+                            }
+                            setPriceEdits({ ...priceEdits, [p.id]: undefined });
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </section>
 
         {/* Close Modal */}
-        {closing && (
-          <div style={s.overlay} onClick={() => setClosing(null)}>
-            <div style={s.modal} onClick={e => e.stopPropagation()}>
-              <div style={s.modalTitle}>close: {closing.side}</div>
-              <div style={s.modalSub}>{closing.market}</div>
-              <div style={s.modalInfo}>
-                {closing.shares} shares @ {(closing.entryPrice * 100).toFixed(1)}¢ = ${fmt(closing.cost)}
-              </div>
-              <div style={s.modalRow}>
-                <label style={s.modalLabel}>total payout $</label>
-                <input
-                  style={s.input}
-                  type="number"
-                  step="0.01"
-                  value={closeForm.proceeds}
-                  onChange={e => setCloseForm({ ...closeForm, proceeds: e.target.value })}
-                  autoFocus
-                />
-              </div>
-              <div style={s.modalRow}>
-                <label style={s.modalLabel}>fee $ (optional)</label>
-                <input
-                  style={s.input}
-                  type="number"
-                  step="0.01"
-                  value={closeForm.fee}
-                  onChange={e => setCloseForm({ ...closeForm, fee: e.target.value })}
-                />
-              </div>
-              <div style={s.modalActions}>
-                <button style={s.btnCancel} onClick={() => setClosing(null)}>cancel</button>
-                <button style={s.btn} onClick={closePosition}>confirm</button>
+        {closing && (() => {
+          const bidPrice = closing.bestBid !== null ? closing.bestBid : closing.currentPrice;
+          const estimatedValue = closing.shares * bidPrice;
+          const estimatedPnl = estimatedValue - closing.cost;
+          return (
+            <div style={s.overlay} onClick={() => setClosing(null)}>
+              <div style={s.modal} onClick={e => e.stopPropagation()}>
+                <div style={s.modalTitle}>Cash Out</div>
+                <div style={s.modalSub}>{closing.market}</div>
+                <div style={s.modalInfo}>
+                  <div>{closing.side} · {closing.shares} shares @ {(closing.entryPrice * 100).toFixed(1)}¢</div>
+                  <div style={s.modalInfoRow}>
+                    <span>Cost: ${fmt(closing.cost)}</span>
+                    <span style={{ color: estimatedPnl >= 0 ? '#080' : '#a00', fontWeight: 600 }}>
+                      Est. P&L: {estimatedPnl >= 0 ? '+' : ''}${fmt(estimatedPnl)}
+                    </span>
+                  </div>
+                </div>
+                <div style={s.modalRow}>
+                  <label style={s.modalLabel}>actual proceeds $ (pre-filled from bid)</label>
+                  <input
+                    style={s.modalInput}
+                    type="number"
+                    step="0.01"
+                    value={closeForm.proceeds}
+                    onChange={e => setCloseForm({ ...closeForm, proceeds: e.target.value })}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') closePosition();
+                    }}
+                    autoFocus
+                  />
+                </div>
+                <div style={s.modalRow}>
+                  <label style={s.modalLabel}>fee $ (optional)</label>
+                  <input
+                    style={s.modalInput}
+                    type="number"
+                    step="0.01"
+                    value={closeForm.fee}
+                    onChange={e => setCloseForm({ ...closeForm, fee: e.target.value })}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') closePosition();
+                    }}
+                  />
+                </div>
+                <div style={s.modalActions}>
+                  <button style={s.btnCancel} onClick={() => setClosing(null)}>cancel</button>
+                  <button style={s.btnConfirm} onClick={closePosition}>confirm</button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* History */}
         <section style={s.section}>
@@ -469,7 +523,7 @@ const ScalpingDashboard = ({ pin }) => {
         </section>
 
         <footer style={s.footer}>
-          v0.3 · data in localStorage · click sync to fetch from polymarket
+          v0.4 · data in localStorage · tap sync to fetch from polymarket
         </footer>
       </div>
     </div>
@@ -486,55 +540,90 @@ const s = {
     padding: 16,
   },
   container: {
-    maxWidth: 1000,
+    maxWidth: 600,
     margin: '0 auto',
   },
   header: {
     borderBottom: '2px solid #222',
-    paddingBottom: 12,
+    paddingBottom: 16,
     marginBottom: 24,
   },
   headerTop: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+  },
+  lastUpdated: {
+    fontSize: 11,
+    color: '#999',
   },
   title: {
     margin: 0,
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 400,
     letterSpacing: 2,
   },
   syncBtn: {
-    padding: '6px 16px',
+    padding: '10px 20px',
     border: '1px solid #222',
     background: 'transparent',
     fontFamily: 'inherit',
     fontSize: 12,
     cursor: 'pointer',
+    minHeight: 44,
   },
   syncError: {
     marginTop: 8,
-    padding: '6px 10px',
+    padding: '8px 12px',
     background: '#fee',
     border: '1px solid #a00',
     color: '#a00',
     fontSize: 11,
   },
-  stats: {
-    marginTop: 8,
-    fontSize: 12,
+  heroSection: {
+    textAlign: 'center',
+    padding: '20px 0',
   },
-  statDivider: {
-    margin: '0 12px',
+  heroPnL: {
+    fontSize: 42,
+    fontWeight: 600,
+    fontVariantNumeric: 'tabular-nums',
+    letterSpacing: -1,
+  },
+  heroLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  statsRow: {
+    display: 'flex',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
+    fontSize: 12,
+    color: '#666',
+  },
+  statItem: {
+    whiteSpace: 'nowrap',
+  },
+  statDot: {
     color: '#999',
+    margin: '0 4px',
   },
   syncedBadge: {
     marginLeft: 6,
-    padding: '1px 4px',
+    padding: '2px 5px',
     background: '#e0e0d8',
     fontSize: 9,
-    color: '#666',
+    color: '#888',
     verticalAlign: 'middle',
   },
   section: {
@@ -545,7 +634,7 @@ const s = {
     textTransform: 'uppercase',
     letterSpacing: 1,
     color: '#666',
-    marginBottom: 8,
+    marginBottom: 12,
     borderBottom: '1px solid #ccc',
     paddingBottom: 4,
   },
@@ -555,48 +644,148 @@ const s = {
     flexWrap: 'wrap',
   },
   input: {
-    padding: '8px 10px',
+    padding: '12px 10px',
     border: '1px solid #999',
     background: '#fff',
     fontFamily: 'inherit',
-    fontSize: 13,
+    fontSize: 14,
     outline: 'none',
+    minHeight: 44,
   },
   btn: {
-    padding: '8px 16px',
+    padding: '12px 20px',
     border: '1px solid #222',
     background: '#222',
     color: '#fff',
     fontFamily: 'inherit',
-    fontSize: 13,
+    fontSize: 14,
     cursor: 'pointer',
+    minHeight: 44,
   },
   btnSmall: {
-    padding: '4px 10px',
+    padding: '8px 14px',
     border: '1px solid #666',
     background: 'transparent',
     fontFamily: 'inherit',
-    fontSize: 11,
+    fontSize: 12,
     cursor: 'pointer',
+    minHeight: 44,
   },
   btnTiny: {
-    padding: '2px 8px',
+    padding: '8px 12px',
     border: '1px solid #080',
     background: 'transparent',
     fontFamily: 'inherit',
-    fontSize: 11,
+    fontSize: 12,
     color: '#080',
     cursor: 'pointer',
-    marginRight: 4,
+    minHeight: 44,
   },
   btnCancel: {
-    padding: '8px 16px',
+    padding: '12px 20px',
     border: '1px solid #999',
     background: 'transparent',
     fontFamily: 'inherit',
-    fontSize: 13,
+    fontSize: 14,
     cursor: 'pointer',
+    minHeight: 44,
+    flex: 1,
   },
+  btnConfirm: {
+    padding: '12px 20px',
+    border: '1px solid #222',
+    background: '#222',
+    color: '#fff',
+    fontFamily: 'inherit',
+    fontSize: 14,
+    cursor: 'pointer',
+    minHeight: 44,
+    flex: 1,
+  },
+  // Position cards
+  positionCards: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+  },
+  positionCard: {
+    border: '1px solid #ccc',
+    background: '#fff',
+    padding: 16,
+  },
+  cardHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 4,
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: 500,
+    lineHeight: 1.3,
+    flex: 1,
+  },
+  cashOutBtn: {
+    padding: '10px 16px',
+    border: '1px solid #222',
+    background: '#222',
+    color: '#fff',
+    fontFamily: 'inherit',
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: 'pointer',
+    minHeight: 44,
+    whiteSpace: 'nowrap',
+    letterSpacing: 0.5,
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 12,
+  },
+  cardMetrics: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 16,
+    marginBottom: 8,
+  },
+  metricGroup: {
+    display: 'flex',
+    gap: 6,
+    alignItems: 'baseline',
+  },
+  metricLabel: {
+    fontSize: 11,
+    color: '#888',
+    textTransform: 'uppercase',
+  },
+  metricValue: {
+    fontSize: 14,
+    fontWeight: 500,
+    fontVariantNumeric: 'tabular-nums',
+  },
+  pnlValue: {
+    fontSize: 16,
+    fontWeight: 600,
+    fontVariantNumeric: 'tabular-nums',
+  },
+  cardSpread: {
+    fontSize: 11,
+    color: '#888',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTop: '1px solid #eee',
+  },
+  cardManualPrice: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTop: '1px solid #eee',
+  },
+  // Table styles (for history)
   table: {
     width: '100%',
     borderCollapse: 'collapse',
@@ -634,16 +823,17 @@ const s = {
     fontVariantNumeric: 'tabular-nums',
   },
   priceInput: {
-    width: 60,
-    padding: '4px 6px',
+    width: 70,
+    padding: '8px 10px',
     border: '1px solid #ccc',
     background: '#fff',
     fontFamily: 'inherit',
-    fontSize: 13,
+    fontSize: 14,
     textAlign: 'right',
+    minHeight: 40,
   },
   empty: {
-    padding: 24,
+    padding: 32,
     textAlign: 'center',
     color: '#999',
     fontStyle: 'italic',
@@ -654,52 +844,68 @@ const s = {
     left: 0,
     right: 0,
     bottom: 0,
-    background: 'rgba(0,0,0,0.4)',
+    background: 'rgba(0,0,0,0.5)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
+    padding: 16,
   },
   modal: {
     background: '#fff',
     border: '2px solid #222',
     padding: 24,
-    width: 340,
-    maxWidth: '90vw',
+    width: 360,
+    maxWidth: '100%',
   },
   modalTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 600,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   modalSub: {
     fontSize: 12,
     color: '#666',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   modalInfo: {
     fontSize: 12,
     background: '#f0f0e8',
-    padding: 8,
-    marginBottom: 16,
+    padding: 12,
+    marginBottom: 20,
+  },
+  modalInfoRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginTop: 8,
   },
   modalRow: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   modalLabel: {
     display: 'block',
     fontSize: 11,
     color: '#666',
-    marginBottom: 4,
+    marginBottom: 6,
+  },
+  modalInput: {
+    width: '100%',
+    padding: '12px 10px',
+    border: '1px solid #999',
+    background: '#fff',
+    fontFamily: 'inherit',
+    fontSize: 16,
+    outline: 'none',
+    minHeight: 48,
   },
   modalActions: {
     display: 'flex',
-    gap: 8,
-    marginTop: 20,
+    gap: 12,
+    marginTop: 24,
   },
   hindsightBtns: {
     display: 'flex',
-    gap: 4,
+    gap: 8,
   },
   footer: {
     textAlign: 'center',
