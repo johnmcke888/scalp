@@ -6,14 +6,15 @@ import { usePolymarketWebSocket } from '@/hooks/usePolymarketWebSocket';
 import { getTeamColor } from '@/lib/teamColors';
 
 // Inline sparkline component - shows recent price trajectory
-const Sparkline = ({ data, currentValue, entryValue, color = '#222', width = 180, height = 28 }) => {
+const Sparkline = ({ data, currentValue, entryValue, color = '#222', width = 200, height = 40 }) => {
   if (!data || data.length < 2) {
     // Placeholder when no data
     return (
       <div style={{
         width,
         height,
-        background: '#f5f5f0',
+        background: '#fafaf8',
+        borderRadius: 4,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -50,35 +51,44 @@ const Sparkline = ({ data, currentValue, entryValue, color = '#222', width = 180
   const entryY = entryValue ? height - ((entryValue - displayMin) / displayRange) * height : null;
 
   return (
-    <svg width={width} height={height} style={{ display: 'block' }}>
-      {/* Entry reference line (dashed) */}
+    <svg width={width} height={height} style={{ display: 'block', background: '#fafaf8', borderRadius: 4 }}>
+      {/* Entry reference line - more visible */}
       {entryY !== null && (
         <line
           x1={0}
           y1={entryY}
           x2={width}
           y2={entryY}
-          stroke="#999"
+          stroke="#666"
           strokeWidth={1}
-          strokeDasharray="3,3"
+          strokeDasharray="4,4"
         />
       )}
-      {/* Price line */}
+      {/* Price line - thicker */}
       <path
         d={pathPoints}
         fill="none"
         stroke={color}
-        strokeWidth={2}
+        strokeWidth={3}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {/* Current price dot */}
+      {/* Current price dot - larger */}
       <circle
         cx={width}
         cy={currentY}
-        r={4}
+        r={5}
         fill={color}
       />
+      {/* Entry price dot */}
+      {entryY !== null && (
+        <circle
+          cx={0}
+          cy={entryY}
+          r={3}
+          fill="#666"
+        />
+      )}
     </svg>
   );
 };
@@ -103,12 +113,48 @@ const MomentumIndicator = ({ priceHistory }) => {
   return (
     <span style={{
       color: isUp ? '#16a34a' : '#dc2626',
-      fontSize: 13,
-      fontWeight: 600,
+      fontSize: 12,
+      fontWeight: 700,
       fontVariantNumeric: 'tabular-nums',
+      background: isUp ? '#dcfce7' : '#fee2e2',
+      padding: '2px 6px',
+      borderRadius: 2,
     }}>
       {isUp ? '▲' : '▼'} {Math.abs(change).toFixed(1)}%
     </span>
+  );
+};
+
+// Quick exit targets - show prices needed for various profit levels
+const ExitTargets = ({ entryPrice, shares, cost }) => {
+  // Calculate prices for +5%, +10%, +20% profit
+  const targets = [5, 10, 20].map(pct => {
+    const targetValue = cost * (1 + pct / 100);
+    const targetPrice = targetValue / shares;
+    return { pct, price: targetPrice };
+  }).filter(t => t.price <= 1); // Filter out impossible prices (>100¢)
+
+  if (targets.length === 0) return null;
+
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      gap: 12,
+      fontSize: 10,
+      color: '#666',
+      marginBottom: 8,
+    }}>
+      {targets.map(t => (
+        <span key={t.pct} style={{
+          background: '#f5f5f0',
+          padding: '3px 8px',
+          borderRadius: 2,
+        }}>
+          +{t.pct}% @ {(t.price * 100).toFixed(0)}¢
+        </span>
+      ))}
+    </div>
   );
 };
 
@@ -168,6 +214,10 @@ const ScalpingDashboard = ({ pin }) => {
 
   // Event data (scores, periods) by slug
   const [eventData, setEventData] = useState({});
+
+  // Track previous prices for flash effect
+  const [prevPrices, setPrevPrices] = useState({});
+  const [priceFlash, setPriceFlash] = useState({}); // { positionId: 'up' | 'down' | null }
 
   // Track which charts are expanded
   const [expandedCharts, setExpandedCharts] = useState({});
@@ -276,6 +326,41 @@ const ScalpingDashboard = ({ pin }) => {
       return updated;
     });
   }, [wsEvents]);
+
+  // Track price changes for flash effect
+  useEffect(() => {
+    if (Object.keys(wsPrices).length === 0 || positions.length === 0) return;
+
+    positions.forEach(p => {
+      // Inline price calculation (same logic as getLivePositionData)
+      const wsData = wsPrices[p.id];
+      let livePrice = null;
+      if (wsData) {
+        if (wsData.sides && wsData.sides[p.side] !== undefined) {
+          livePrice = wsData.sides[p.side];
+        } else if (wsData.currentPx !== undefined) {
+          const current = wsData.currentPx;
+          const opposite = 1 - current;
+          const refPrice = p.marketPrice || p.currentPrice || 0.5;
+          livePrice = Math.abs(current - refPrice) < Math.abs(opposite - refPrice) ? current : opposite;
+        }
+      }
+      const price = livePrice !== null ? livePrice : p.currentPrice;
+      const prevPrice = prevPrices[p.id];
+
+      if (prevPrice !== undefined && price !== prevPrice) {
+        const direction = price > prevPrice ? 'up' : 'down';
+        setPriceFlash(prev => ({ ...prev, [p.id]: direction }));
+
+        // Clear flash after animation
+        setTimeout(() => {
+          setPriceFlash(prev => ({ ...prev, [p.id]: null }));
+        }, 500);
+      }
+
+      setPrevPrices(prev => ({ ...prev, [p.id]: price }));
+    });
+  }, [wsPrices]); // Trigger on WebSocket price updates
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -971,55 +1056,32 @@ const ScalpingDashboard = ({ pin }) => {
           <div style={s.headerTop}>
             <h1 style={s.title}>scalper</h1>
             <div style={s.headerRight}>
-              {/* WebSocket status indicator */}
-              <div style={s.wsStatus}>
-                {wsConnected ? (
-                  <span style={s.wsConnected} title="WebSocket connected - real-time updates">
-                    ● live
-                  </span>
-                ) : wsError ? (
-                  <span style={s.wsError} title={wsError}>
-                    ○ offline
-                  </span>
-                ) : allSlugs.length > 0 ? (
-                  <span style={s.wsConnecting}>
-                    ◐ connecting...
-                  </span>
-                ) : null}
-              </div>
-              {timeAgo && (
-                <span style={s.lastUpdated}>
-                  {timeAgo} · next in {autoSyncCountdown}s
-                </span>
-              )}
-              <button
-                style={s.syncBtn}
-                onClick={syncAll}
-                disabled={syncing}
-              >
-                {syncing ? 'syncing...' : 'sync'}
+              {wsConnected && <span style={s.wsConnected}>● live</span>}
+              <button style={s.syncBtn} onClick={syncAll} disabled={syncing}>
+                {syncing ? '...' : 'sync'}
               </button>
             </div>
           </div>
           {syncError && <div style={s.syncError}>{syncError}</div>}
-          <div style={s.heroSection}>
-            <div style={{ ...s.heroPnL, color: totalUnrealized >= 0 ? '#080' : '#a00' }}>
-              {totalUnrealized >= 0 ? '+' : ''}{fmt(totalUnrealized)}
-            </div>
-            <div style={s.heroLabel}>unrealized P&L</div>
-          </div>
-          <div style={s.statsRow}>
+          {/* Compact stats row - all on one line */}
+          <div style={s.compactStats}>
+            <span>
+              open: <b style={{ color: totalUnrealized >= 0 ? '#16a34a' : '#dc2626' }}>
+                {totalUnrealized >= 0 ? '+' : ''}${totalUnrealized.toFixed(2)}
+              </b>
+            </span>
+            <span style={s.statDot}>·</span>
+            <span>
+              realized: <b style={{ color: totalRealized >= 0 ? '#16a34a' : '#dc2626' }}>
+                {totalRealized >= 0 ? '+' : ''}${totalRealized.toFixed(2)}
+              </b>
+            </span>
             {balance !== null && (
               <>
-                <span style={s.statItem}>cash: <b>${fmt(balance)}</b></span>
                 <span style={s.statDot}>·</span>
+                <span>cash: <b>${balance.toFixed(2)}</b></span>
               </>
             )}
-            <span style={s.statItem}>realized: <b style={{ color: totalRealized >= 0 ? '#080' : '#a00' }}>${fmt(totalRealized, true)}</b></span>
-            <span style={s.statDot}>·</span>
-            <span style={s.statItem}>hindsight: <b style={{ color: totalHindsight <= 0 ? '#080' : '#a00' }}>
-              {totalHindsight <= 0 ? '↑' : '↓'}${fmt(Math.abs(totalHindsight))}
-            </b></span>
           </div>
         </header>
 
@@ -1112,7 +1174,10 @@ const ScalpingDashboard = ({ pin }) => {
                     </div>
 
                     {/* Hero: Current price */}
-                    <div style={s.priceHero}>
+                    <div
+                      style={s.priceHero}
+                      className={priceFlash[p.id] === 'up' ? 'price-flash-up' : priceFlash[p.id] === 'down' ? 'price-flash-down' : ''}
+                    >
                       <span style={s.priceValue}>{(price * 100).toFixed(1)}¢</span>
                     </div>
 
@@ -1150,6 +1215,9 @@ const ScalpingDashboard = ({ pin }) => {
                     }}>
                       {pnl >= 0 ? '+' : ''}{pnlPct.toFixed(1)}% · {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
                     </div>
+
+                    {/* Exit targets */}
+                    <ExitTargets entryPrice={p.entryPrice} shares={p.shares} cost={p.cost} />
 
                     {/* Footer stats */}
                     <div style={s.posFooter}>
@@ -1545,7 +1613,7 @@ const ScalpingDashboard = ({ pin }) => {
         </section>
 
         <footer style={s.footer}>
-          v0.7 · data in localStorage · {wsConnected ? 'real-time via WebSocket' : 'tap sync to fetch from polymarket'}
+          v0.8 · data in localStorage · {wsConnected ? 'real-time via WebSocket' : 'tap sync to fetch from polymarket'}
         </footer>
       </div>
     </div>
@@ -1566,15 +1634,15 @@ const s = {
     margin: '0 auto',
   },
   header: {
-    borderBottom: '2px solid #222',
-    paddingBottom: 16,
-    marginBottom: 24,
+    borderBottom: '1px solid #ccc',
+    paddingBottom: 10,
+    marginBottom: 16,
   },
   headerTop: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   headerRight: {
     display: 'flex',
@@ -1584,6 +1652,13 @@ const s = {
   lastUpdated: {
     fontSize: 11,
     color: '#999',
+  },
+  compactStats: {
+    fontSize: 12,
+    color: '#666',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 4,
   },
   // WebSocket status indicator
   wsStatus: {
@@ -1610,18 +1685,17 @@ const s = {
   },
   title: {
     margin: 0,
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 400,
     letterSpacing: 2,
   },
   syncBtn: {
-    padding: '10px 20px',
+    padding: '6px 14px',
     border: '1px solid #222',
     background: 'transparent',
     fontFamily: 'inherit',
-    fontSize: 12,
+    fontSize: 11,
     cursor: 'pointer',
-    minHeight: 44,
   },
   syncError: {
     marginTop: 8,
@@ -1753,12 +1827,12 @@ const s = {
     flexDirection: 'column',
     gap: 12,
   },
-  // New position card styles (v0.7)
+  // New position card styles (v0.8)
   posCard: {
     border: '1px solid #ccc',
     background: '#fff',
-    padding: 16,
-    marginBottom: 12,
+    padding: '12px 14px',
+    marginBottom: 8,
   },
   posHeader: {
     display: 'flex',
@@ -1802,16 +1876,17 @@ const s = {
     minHeight: 44,
   },
   posSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#666',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   priceHero: {
     textAlign: 'center',
-    padding: '4px 0 8px',
+    padding: '2px 0 4px',
+    borderRadius: 4,
   },
   priceValue: {
-    fontSize: 52,
+    fontSize: 44,
     fontWeight: 600,
     fontVariantNumeric: 'tabular-nums',
     letterSpacing: -2,
@@ -1821,8 +1896,9 @@ const s = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    padding: '4px 0 12px',
+    gap: 8,
+    padding: '8px 0',
+    margin: '0 -8px',
   },
   rangeLabel: {
     fontSize: 11,
@@ -1833,45 +1909,46 @@ const s = {
   },
   scoreSection: {
     textAlign: 'center',
-    padding: '12px 0',
+    padding: '8px 0',
     borderTop: '1px solid #eee',
+    marginTop: 4,
   },
   scoreValue: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 700,
     fontVariantNumeric: 'tabular-nums',
-    letterSpacing: 4,
+    letterSpacing: 3,
     color: '#222',
   },
   scorePeriod: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#666',
-    marginTop: 4,
+    marginTop: 2,
   },
   pnlBadge: {
     textAlign: 'center',
-    padding: '10px 16px',
-    fontSize: 15,
+    padding: '6px 12px',
+    fontSize: 14,
     fontWeight: 600,
     fontVariantNumeric: 'tabular-nums',
-    margin: '12px 0',
+    margin: '8px 0',
   },
   posFooter: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#888',
     textAlign: 'center',
-    paddingTop: 12,
+    paddingTop: 8,
     borderTop: '1px solid #eee',
   },
   expandBtn: {
     width: '100%',
-    padding: '10px',
-    marginTop: 12,
-    border: '1px solid #ddd',
-    background: '#fafaf8',
+    padding: '6px',
+    marginTop: 8,
+    border: '1px solid #eee',
+    background: 'transparent',
     fontFamily: 'inherit',
-    fontSize: 12,
-    color: '#666',
+    fontSize: 11,
+    color: '#999',
     cursor: 'pointer',
   },
   // Legacy position card styles (kept for compatibility)
