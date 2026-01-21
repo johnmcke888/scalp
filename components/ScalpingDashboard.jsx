@@ -369,21 +369,20 @@ const ScalpingDashboard = ({ pin }) => {
                     <div style={s.cardSubtitle}>
                       {p.side} · {p.shares} shares @ {(p.entryPrice * 100).toFixed(1)}¢
                     </div>
-                    <div style={s.cardMetrics}>
-                      <div style={s.metricGroup}>
-                        <span style={s.metricLabel}>PRICE:</span>
-                        <span style={s.metricValue}>{(price * 100).toFixed(1)}¢</span>
+                    <div style={s.cardHeroSection}>
+                      <div style={{ ...s.cardHeroPnL, color: pnl >= 0 ? '#080' : '#a00' }}>
+                        {pnl >= 0 ? '+' : '-'}${fmt(Math.abs(pnl))}
                       </div>
-                      <div style={s.metricGroup}>
-                        <span style={s.metricLabel}>VALUE:</span>
-                        <span style={s.metricValue}>${fmt(value)}</span>
+                      <div style={{ ...s.cardHeroPct, color: pnl >= 0 ? '#080' : '#a00' }}>
+                        ({pct(pnl, p.cost)}%)
                       </div>
-                      <div style={s.metricGroup}>
-                        <span style={s.metricLabel}>P&L:</span>
-                        <span style={{ ...s.pnlValue, color: pnl >= 0 ? '#080' : '#a00' }}>
-                          {pnl >= 0 ? '+' : ''}${fmt(Math.abs(pnl))} ({pct(pnl, p.cost)}%)
-                        </span>
-                      </div>
+                    </div>
+                    <div style={s.cardFooterStats}>
+                      <span>price: {(price * 100).toFixed(1)}¢</span>
+                      <span style={s.footerDot}>·</span>
+                      <span>value: ${fmt(value)}</span>
+                      <span style={s.footerDot}>·</span>
+                      <span>cost: ${fmt(p.cost)}</span>
                     </div>
                     {!p.synced && (
                       <div style={s.cardManualPrice}>
@@ -734,7 +733,38 @@ const s = {
   cardSubtitle: {
     fontSize: 12,
     color: '#666',
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  cardHeroSection: {
+    textAlign: 'center',
+    padding: '16px 0',
+  },
+  cardHeroPnL: {
+    fontSize: 36,
+    fontWeight: 600,
+    fontVariantNumeric: 'tabular-nums',
+    letterSpacing: -1,
+    lineHeight: 1,
+  },
+  cardHeroPct: {
+    fontSize: 16,
+    fontWeight: 500,
+    marginTop: 4,
+    fontVariantNumeric: 'tabular-nums',
+  },
+  cardFooterStats: {
+    display: 'flex',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
+    fontSize: 11,
+    color: '#888',
+    paddingTop: 12,
+    borderTop: '1px solid #eee',
+  },
+  footerDot: {
+    color: '#ccc',
+    margin: '0 4px',
   },
   cardMetrics: {
     display: 'flex',
