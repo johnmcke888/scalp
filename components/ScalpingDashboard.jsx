@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { usePolymarketWebSocket } from '@/hooks/usePolymarketWebSocket';
 
 const ScalpingDashboard = ({ pin }) => {
   const [positions, setPositions] = useState(() => {
@@ -61,6 +62,121 @@ const ScalpingDashboard = ({ pin }) => {
 
   // Track which charts are expanded
   const [expandedCharts, setExpandedCharts] = useState({});
+
+  // Calculate slugs for WebSocket subscription
+  const allSlugs = useMemo(() => {
+    const positionSlugs = positions
+      .filter(p => p.synced && p.id)
+      .map(p => p.id);
+    const watchedSlugs = watchedMarkets.map(w => w.slug);
+    return [...new Set([...positionSlugs, ...watchedSlugs])];
+  }, [positions, watchedMarkets]);
+
+  // WebSocket hook for real-time updates
+  const {
+    prices: wsPrices,
+    events: wsEvents,
+    connected: wsConnected,
+    error: wsError,
+    connect: wsConnect,
+    disconnect: wsDisconnect,
+    updateSubscription
+  } = usePolymarketWebSocket(allSlugs, pin);
+
+  // Connect WebSocket after initial data is available
+  useEffect(() => {
+    if (allSlugs.length > 0 && !wsConnected) {
+      wsConnect();
+    }
+  }, [allSlugs.length > 0]); // Only trigger on first having slugs
+
+  // Update subscription when slugs change
+  useEffect(() => {
+    if (wsConnected && allSlugs.length > 0) {
+      updateSubscription(allSlugs);
+    }
+  }, [allSlugs.join(','), wsConnected, updateSubscription]);
+
+  // Merge WebSocket prices into price history
+  useEffect(() => {
+    if (Object.keys(wsPrices).length === 0) return;
+
+    const now = Date.now();
+    setPriceHistory(prev => {
+      const updated = { ...prev };
+      for (const [slug, priceData] of Object.entries(wsPrices)) {
+        if (!priceData.sides) continue;
+        if (!updated[slug]) {
+          updated[slug] = {};
+        }
+        for (const [side, price] of Object.entries(priceData.sides)) {
+          if (price === null || price === undefined) continue;
+          if (!updated[slug][side]) {
+            updated[slug][side] = [];
+          }
+          // Only add if price changed or it's been more than 5 seconds (faster for WS)
+          const lastPoint = updated[slug][side][updated[slug][side].length - 1];
+          if (!lastPoint || lastPoint.price !== price || now - lastPoint.time > 5000) {
+            updated[slug][side] = [
+              ...updated[slug][side],
+              { time: now, price }
+            ].slice(-500); // Keep last 500 points
+          }
+        }
+      }
+      return updated;
+    });
+
+    // Update positions with new market prices (for display)
+    setPositions(prev => prev.map(p => {
+      if (!p.synced || !wsPrices[p.id]) return p;
+      const priceData = wsPrices[p.id];
+      if (priceData.sides && priceData.sides[p.side] !== undefined) {
+        return { ...p, marketPrice: priceData.sides[p.side] };
+      }
+      return p;
+    }));
+  }, [wsPrices]);
+
+  // Merge WebSocket events into event data and score history
+  useEffect(() => {
+    if (Object.keys(wsEvents).length === 0) return;
+
+    // Update event data
+    setEventData(prev => ({ ...prev, ...wsEvents }));
+
+    // Update score history
+    const now = Date.now();
+    setScoreHistory(prev => {
+      const updated = { ...prev };
+      for (const [slug, eventInfo] of Object.entries(wsEvents)) {
+        if (!eventInfo.score) continue;
+        // Parse score (e.g., "3 - 2" -> { home: 3, away: 2 })
+        const scoreMatch = eventInfo.score.match(/(\d+)\s*-\s*(\d+)/);
+        if (!scoreMatch) continue;
+        const home = parseInt(scoreMatch[1], 10);
+        const away = parseInt(scoreMatch[2], 10);
+        if (!updated[slug]) {
+          updated[slug] = [];
+        }
+        // Only add if score changed or it's been more than 15 seconds (faster for WS)
+        const lastPoint = updated[slug][updated[slug].length - 1];
+        if (!lastPoint || lastPoint.home !== home || lastPoint.away !== away || now - lastPoint.time > 15000) {
+          updated[slug] = [
+            ...updated[slug],
+            {
+              time: now,
+              home,
+              away,
+              period: eventInfo.period || null,
+              elapsed: eventInfo.elapsed || null,
+            }
+          ].slice(-500); // Keep last 500 points
+        }
+      }
+      return updated;
+    });
+  }, [wsEvents]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -299,6 +415,11 @@ const ScalpingDashboard = ({ pin }) => {
   const syncAll = async () => {
     await Promise.all([syncPositions(), syncBalance()]);
     setLastSynced(new Date());
+
+    // Try to reconnect WebSocket if disconnected
+    if (!wsConnected && allSlugs.length > 0) {
+      wsConnect();
+    }
   };
 
   const addPosition = () => {
@@ -658,6 +779,22 @@ const ScalpingDashboard = ({ pin }) => {
           <div style={s.headerTop}>
             <h1 style={s.title}>scalper</h1>
             <div style={s.headerRight}>
+              {/* WebSocket status indicator */}
+              <div style={s.wsStatus}>
+                {wsConnected ? (
+                  <span style={s.wsConnected} title="WebSocket connected - real-time updates">
+                    ● live
+                  </span>
+                ) : wsError ? (
+                  <span style={s.wsError} title={wsError}>
+                    ○ offline
+                  </span>
+                ) : allSlugs.length > 0 ? (
+                  <span style={s.wsConnecting}>
+                    ◐ connecting...
+                  </span>
+                ) : null}
+              </div>
               {timeAgo && (
                 <span style={s.lastUpdated}>{timeAgo}</span>
               )}
@@ -1190,7 +1327,7 @@ const ScalpingDashboard = ({ pin }) => {
         </section>
 
         <footer style={s.footer}>
-          v0.5 · data in localStorage · tap sync to fetch from polymarket
+          v0.6 · data in localStorage · {wsConnected ? 'real-time via WebSocket' : 'tap sync to fetch from polymarket'}
         </footer>
       </div>
     </div>
@@ -1229,6 +1366,29 @@ const s = {
   lastUpdated: {
     fontSize: 11,
     color: '#999',
+  },
+  // WebSocket status indicator
+  wsStatus: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  wsConnected: {
+    color: '#22c55e',
+    fontSize: 12,
+    fontFamily: 'inherit',
+    fontWeight: 500,
+  },
+  wsError: {
+    color: '#ef4444',
+    fontSize: 12,
+    fontFamily: 'inherit',
+    cursor: 'help',
+  },
+  wsConnecting: {
+    color: '#f59e0b',
+    fontSize: 12,
+    fontFamily: 'inherit',
+    animation: 'pulse 1s infinite',
   },
   title: {
     margin: 0,

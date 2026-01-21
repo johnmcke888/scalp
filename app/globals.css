@@ -15,3 +15,9 @@ input:focus, button:focus {
   outline: 2px solid #222;
   outline-offset: 1px;
 }
+
+/* WebSocket status animation */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
