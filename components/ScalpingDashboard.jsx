@@ -526,11 +526,19 @@ const ScalpingDashboard = ({ pin }) => {
   };
 
   const totalUnrealized = positions.reduce((sum, p) => {
-    // For synced positions, use cashValue (currentValue) from API
-    // For manual positions, fall back to shares * currentPrice
-    const value = p.synced && p.currentValue !== undefined
-      ? p.currentValue
-      : p.shares * p.currentPrice;
+    let value;
+    // PRIORITIZE LIVE DATA: If we have a live market price, use it
+    if (p.marketPrice !== null && p.marketPrice !== undefined) {
+      value = p.shares * p.marketPrice;
+    }
+    // Fallback to API snapshot if no live price
+    else if (p.synced && p.currentValue !== undefined) {
+      value = p.currentValue;
+    }
+    // Fallback to manual price
+    else {
+      value = p.shares * p.currentPrice;
+    }
     return sum + (value - p.cost);
   }, 0);
   const totalRealized = history.reduce((sum, t) => sum + t.realizedPnL, 0);
@@ -889,11 +897,16 @@ const ScalpingDashboard = ({ pin }) => {
           ) : (
             <div style={s.positionCards}>
               {positions.map(p => {
-                // For synced positions: use cashValue (currentValue) from API for P&L
-                // For manual positions: fall back to shares * currentPrice
-                const value = p.synced && p.currentValue !== undefined
-                  ? p.currentValue
-                  : p.shares * p.currentPrice;
+                // Calculate live value - prioritize WebSocket marketPrice
+                let value;
+                if (p.marketPrice !== null && p.marketPrice !== undefined) {
+                  value = p.shares * p.marketPrice;
+                } else if (p.synced && p.currentValue !== undefined) {
+                  value = p.currentValue;
+                } else {
+                  value = p.shares * p.currentPrice;
+                }
+
                 const pnl = value - p.cost;
                 // Market price is just for display (informational)
                 const displayPrice = p.marketPrice !== null ? p.marketPrice : p.currentPrice;
