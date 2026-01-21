@@ -107,8 +107,9 @@ const ScalpingDashboard = ({ pin }) => {
       const slugs = transformed.map(p => p.id);
       const prices = await fetchPrices(slugs);
 
-      // Update positions with market price data
+      // Update positions with market price data (for display only)
       // Match position's side (e.g., "Minutemen") to get the correct price
+      // Note: marketPrice is informational only - P&L uses cashValue from API
       const withPrices = transformed.map(p => {
         const priceData = prices[p.id];
         if (priceData && priceData.sides) {
@@ -117,7 +118,7 @@ const ScalpingDashboard = ({ pin }) => {
             return {
               ...p,
               marketPrice: sidePrice,
-              currentPrice: sidePrice,
+              // Don't overwrite currentPrice - keep it derived from cashValue
             };
           }
         }
@@ -219,8 +220,12 @@ const ScalpingDashboard = ({ pin }) => {
   };
 
   const totalUnrealized = positions.reduce((sum, p) => {
-    const price = p.marketPrice !== null ? p.marketPrice : p.currentPrice;
-    return sum + (p.shares * price - p.cost);
+    // For synced positions, use cashValue (currentValue) from API
+    // For manual positions, fall back to shares * currentPrice
+    const value = p.synced && p.currentValue !== undefined
+      ? p.currentValue
+      : p.shares * p.currentPrice;
+    return sum + (value - p.cost);
   }, 0);
   const totalRealized = history.reduce((sum, t) => sum + t.realizedPnL, 0);
   const resolvedTrades = history.filter(t => t.resolved);
@@ -343,10 +348,14 @@ const ScalpingDashboard = ({ pin }) => {
           ) : (
             <div style={s.positionCards}>
               {positions.map(p => {
-                // Use marketPrice from API or fall back to currentPrice
-                const price = p.marketPrice !== null ? p.marketPrice : p.currentPrice;
-                const value = p.shares * price;
+                // For synced positions: use cashValue (currentValue) from API for P&L
+                // For manual positions: fall back to shares * currentPrice
+                const value = p.synced && p.currentValue !== undefined
+                  ? p.currentValue
+                  : p.shares * p.currentPrice;
                 const pnl = value - p.cost;
+                // Market price is just for display (informational)
+                const displayPrice = p.marketPrice !== null ? p.marketPrice : p.currentPrice;
 
                 return (
                   <div key={p.id} style={s.positionCard}>
@@ -358,7 +367,7 @@ const ScalpingDashboard = ({ pin }) => {
                       <button
                         style={s.cashOutBtn}
                         onClick={() => {
-                          const estimatedProceeds = (p.shares * price).toFixed(2);
+                          const estimatedProceeds = value.toFixed(2);
                           setClosing(p);
                           setCloseForm({ proceeds: estimatedProceeds, fee: '' });
                         }}
@@ -378,7 +387,7 @@ const ScalpingDashboard = ({ pin }) => {
                       </div>
                     </div>
                     <div style={s.cardFooterStats}>
-                      <span>price: {(price * 100).toFixed(1)}¢</span>
+                      <span>price: {(displayPrice * 100).toFixed(1)}¢</span>
                       <span style={s.footerDot}>·</span>
                       <span>value: ${fmt(value)}</span>
                       <span style={s.footerDot}>·</span>
@@ -412,8 +421,11 @@ const ScalpingDashboard = ({ pin }) => {
 
         {/* Close Modal */}
         {closing && (() => {
-          const price = closing.marketPrice !== null ? closing.marketPrice : closing.currentPrice;
-          const estimatedValue = closing.shares * price;
+          // For synced positions: use cashValue (currentValue) from API
+          // For manual positions: fall back to shares * currentPrice
+          const estimatedValue = closing.synced && closing.currentValue !== undefined
+            ? closing.currentValue
+            : closing.shares * closing.currentPrice;
           const estimatedPnl = estimatedValue - closing.cost;
           return (
             <div style={s.overlay} onClick={() => setClosing(null)}>
@@ -430,7 +442,7 @@ const ScalpingDashboard = ({ pin }) => {
                   </div>
                 </div>
                 <div style={s.modalRow}>
-                  <label style={s.modalLabel}>actual proceeds $ (pre-filled from market price)</label>
+                  <label style={s.modalLabel}>actual proceeds $ (pre-filled from position value)</label>
                   <input
                     style={s.modalInput}
                     type="number"
