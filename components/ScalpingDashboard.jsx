@@ -39,6 +39,23 @@ const ScalpingDashboard = ({ pin }) => {
     }
   }, [history]);
 
+  const fetchPrices = async (slugs) => {
+    if (!slugs || slugs.length === 0) return {};
+
+    try {
+      const res = await fetch(`/api/prices?slugs=${encodeURIComponent(slugs.join(','))}&pin=${encodeURIComponent(pin)}`);
+      if (!res.ok) {
+        console.error('Failed to fetch prices');
+        return {};
+      }
+      const data = await res.json();
+      return data.prices || {};
+    } catch (err) {
+      console.error('Price fetch error:', err);
+      return {};
+    }
+  };
+
   const syncPositions = async () => {
     setSyncing(true);
     setSyncError(null);
@@ -75,6 +92,8 @@ const ScalpingDashboard = ({ pin }) => {
             entryPrice: shares > 0 ? cost / shares : 0,
             currentPrice: shares > 0 ? currentValue / shares : 0,
             currentValue: currentValue,
+            bestBid: null,
+            bestAsk: null,
             openedAt: pos.updateTime || new Date().toISOString(),
             synced: true, // Mark as synced from API
             source: 'api',
@@ -84,10 +103,28 @@ const ScalpingDashboard = ({ pin }) => {
 
       const transformed = transformPositions(data);
 
+      // Fetch bid/ask prices for all synced positions
+      const slugs = transformed.map(p => p.id);
+      const prices = await fetchPrices(slugs);
+
+      // Update positions with bid/ask data
+      const withPrices = transformed.map(p => {
+        const priceData = prices[p.id];
+        if (priceData) {
+          return {
+            ...p,
+            bestBid: priceData.bestBid,
+            bestAsk: priceData.bestAsk,
+            currentPrice: priceData.bestBid || p.currentPrice, // Use bid as current price
+          };
+        }
+        return p;
+      });
+
       // Merge with existing manual positions (keep manual ones, update synced ones)
       setPositions(prev => {
         const manual = prev.filter(p => !p.synced);
-        return [...transformed, ...manual];
+        return [...withPrices, ...manual];
       });
     } catch (err) {
       setSyncError(err.message);
@@ -177,7 +214,10 @@ const ScalpingDashboard = ({ pin }) => {
     }));
   };
 
-  const totalUnrealized = positions.reduce((sum, p) => sum + (p.shares * p.currentPrice - p.cost), 0);
+  const totalUnrealized = positions.reduce((sum, p) => {
+    const bidPrice = p.bestBid !== null ? p.bestBid : p.currentPrice;
+    return sum + (p.shares * bidPrice - p.cost);
+  }, 0);
   const totalRealized = history.reduce((sum, t) => sum + t.realizedPnL, 0);
   const resolvedTrades = history.filter(t => t.resolved);
   const totalHindsight = resolvedTrades.reduce((sum, t) => sum + t.hindsightDiff, 0);
@@ -276,7 +316,8 @@ const ScalpingDashboard = ({ pin }) => {
                   <th style={s.thR}>shares</th>
                   <th style={s.thR}>entry ¢</th>
                   <th style={s.thR}>cost</th>
-                  <th style={s.thR}>now ¢</th>
+                  <th style={s.thR}>bid ¢</th>
+                  <th style={s.thR}>ask ¢</th>
                   <th style={s.thR}>value</th>
                   <th style={s.thR}>p&l</th>
                   <th style={s.thR}>%</th>
@@ -285,7 +326,9 @@ const ScalpingDashboard = ({ pin }) => {
               </thead>
               <tbody>
                 {positions.map(p => {
-                  const value = p.shares * p.currentPrice;
+                  // Use bestBid for value calculation (conservative - what you'd actually get)
+                  const bidPrice = p.bestBid !== null ? p.bestBid : p.currentPrice;
+                  const value = p.shares * bidPrice;
                   const pnl = value - p.cost;
                   return (
                     <tr key={p.id} style={s.tr}>
@@ -298,17 +341,28 @@ const ScalpingDashboard = ({ pin }) => {
                       <td style={s.tdR}>{(p.entryPrice * 100).toFixed(1)}</td>
                       <td style={s.tdR}>${fmt(p.cost)}</td>
                       <td style={s.tdR}>
-                        <input
-                          style={s.priceInput}
-                          type="number"
-                          step="0.001"
-                          value={priceEdits[p.id] !== undefined ? priceEdits[p.id] : p.currentPrice}
-                          onChange={e => setPriceEdits({ ...priceEdits, [p.id]: e.target.value })}
-                          onBlur={e => {
-                            updateCurrentPrice(p.id, e.target.value);
-                            setPriceEdits({ ...priceEdits, [p.id]: undefined });
-                          }}
-                        />
+                        {p.synced && p.bestBid !== null ? (
+                          <span>{(p.bestBid * 100).toFixed(1)}</span>
+                        ) : (
+                          <input
+                            style={s.priceInput}
+                            type="number"
+                            step="0.001"
+                            value={priceEdits[p.id] !== undefined ? priceEdits[p.id] : p.currentPrice}
+                            onChange={e => setPriceEdits({ ...priceEdits, [p.id]: e.target.value })}
+                            onBlur={e => {
+                              updateCurrentPrice(p.id, e.target.value);
+                              setPriceEdits({ ...priceEdits, [p.id]: undefined });
+                            }}
+                          />
+                        )}
+                      </td>
+                      <td style={s.tdR}>
+                        {p.synced && p.bestAsk !== null ? (
+                          <span>{(p.bestAsk * 100).toFixed(1)}</span>
+                        ) : (
+                          <span style={{ color: '#999' }}>-</span>
+                        )}
                       </td>
                       <td style={s.tdR}>${fmt(value)}</td>
                       <td style={{ ...s.tdR, color: pnl >= 0 ? '#080' : '#a00', fontWeight: 600 }}>
