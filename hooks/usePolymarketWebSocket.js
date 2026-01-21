@@ -21,7 +21,11 @@ export function usePolymarketWebSocket(slugs, pin) {
   const handleMessage = useCallback((event) => {
     try {
       const msg = JSON.parse(event.data);
-      console.log('SSE message:', msg);
+
+      // Log all messages for debugging (except heartbeats)
+      if (msg.type !== 'heartbeat') {
+        console.log('SSE message:', msg);
+      }
 
       // Handle connection event
       if (msg.type === 'connected') {
@@ -49,12 +53,75 @@ export function usePolymarketWebSocket(slugs, pin) {
         return;
       }
 
-      // Handle market data updates from Polymarket
-      // market_data_lite response format (based on docs):
-      // { market_data_lite: { slug: "...", outcomes: [{ name: "...", price: "..." }] } }
+      // Handle market data updates from Polymarket (camelCase format)
+      // Actual format: { marketDataLite: { marketSlug: "...", currentPx: { value: "0.828" }, ... } }
+      if (msg.marketDataLite) {
+        const data = msg.marketDataLite;
+        const slug = data.marketSlug;
+
+        // Log full structure to understand all available fields
+        console.log('WS marketDataLite for', slug, ':', JSON.stringify(data, null, 2));
+
+        if (slug && data.currentPx) {
+          const currentPrice = parseFloat(data.currentPx.value);
+          const lastTradePrice = data.lastTradePx ? parseFloat(data.lastTradePx.value) : undefined;
+          const settlementPrice = data.settlementPx ? parseFloat(data.settlementPx.value) : undefined;
+          const sharesTraded = data.sharesTraded ? parseFloat(data.sharesTraded) : undefined;
+
+          // Check if we have outcomes array (per-side prices)
+          if (data.outcomes && Array.isArray(data.outcomes)) {
+            const sidesData = {};
+            for (const outcome of data.outcomes) {
+              const name = outcome.name || outcome.outcomeName;
+              const price = outcome.price || outcome.currentPx?.value;
+              if (name && price !== undefined) {
+                sidesData[name] = parseFloat(price);
+              }
+            }
+            if (Object.keys(sidesData).length > 0) {
+              setPrices(prev => ({
+                ...prev,
+                [slug]: {
+                  sides: sidesData,
+                  currentPx: currentPrice,
+                  lastTradePx: lastTradePrice,
+                  settlementPx: settlementPrice,
+                  sharesTraded: sharesTraded,
+                }
+              }));
+              return;
+            }
+          }
+
+          // Single price format - currentPx appears to be the market's "Yes" price
+          // For binary markets: Yes price + No price = 1.0 (approximately)
+          // Store the single price and let the UI component calculate sides if needed
+          setPrices(prev => {
+            const existing = prev[slug] || {};
+            return {
+              ...prev,
+              [slug]: {
+                ...existing,
+                currentPx: currentPrice,
+                lastTradePx: lastTradePrice,
+                settlementPx: settlementPrice,
+                sharesTraded: sharesTraded,
+                // For single-price format, we can infer both sides
+                // currentPx is typically the "first outcome" price
+                inferredYesPrice: currentPrice,
+                inferredNoPrice: 1 - currentPrice,
+              }
+            };
+          });
+        }
+        return;
+      }
+
+      // Also check snake_case format (legacy/fallback)
       if (msg.market_data_lite) {
         const data = msg.market_data_lite;
         const slug = data.slug || data.market_slug;
+        console.log('WS market_data_lite (snake_case) for', slug, ':', JSON.stringify(data, null, 2));
         if (slug && data.outcomes) {
           const sidesData = {};
           for (const outcome of data.outcomes) {
@@ -77,8 +144,8 @@ export function usePolymarketWebSocket(slugs, pin) {
       }
 
       // Alternative format: subscription confirmation
-      if (msg.subscribed || msg.subscribe_response) {
-        console.log('Subscription confirmed:', msg);
+      if (msg.subscribed || msg.subscribe_response || msg.subscriptionType) {
+        console.log('Subscription message:', msg);
         return;
       }
 
