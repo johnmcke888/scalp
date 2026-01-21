@@ -131,11 +131,27 @@ const ScalpingDashboard = ({ pin }) => {
     setPositions(prev => prev.map(p => {
       if (!p.synced || !wsPrices[p.id]) return p;
       const priceData = wsPrices[p.id];
-      if (priceData.sides && priceData.sides[p.side] !== undefined) {
-        return { ...p, marketPrice: priceData.sides[p.side] };
-      }
-      return p;
-    }));
+      // Option 1: Direct sides data
+          if (priceData.sides && priceData.sides[p.side] !== undefined) {
+                    return { ...p, marketPrice: priceData.sides[p.side] };
+          }
+
+            // Option 2: Infer from currentPx based on existing marketPrice
+            if (priceData.currentPx !== undefined && p.marketPrice !== null) {
+                      const currentPx = priceData.currentPx;
+                      const oppositePx = 1 - currentPx;
+
+                      // Compare both possibilities to existing marketPrice
+                      const diffCurrent = Math.abs(currentPx - p.marketPrice);
+                      const diffOpposite = Math.abs(oppositePx - p.marketPrice);
+
+                      // Use whichever is closer (with some tolerance for market movement)
+                      const newPrice = diffCurrent <= diffOpposite ? currentPx : oppositePx;
+                      return { ...p, marketPrice: newPrice };
+            }
+
+            return p;
+          }));
   }, [wsPrices]);
 
   // Merge WebSocket events into event data and score history
