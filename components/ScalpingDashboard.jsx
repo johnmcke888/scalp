@@ -127,32 +127,6 @@ const ScalpingDashboard = ({ pin }) => {
       }
       return updated;
     });
-
-    // Update positions with new market prices (for display)
-    setPositions(prev => prev.map(p => {
-      if (!p.synced || !wsPrices[p.id]) return p;
-      const priceData = wsPrices[p.id];
-      // Option 1: Direct sides data
-          if (priceData.sides && priceData.sides[p.side] !== undefined) {
-                    return { ...p, marketPrice: priceData.sides[p.side] };
-          }
-
-            // Option 2: Infer from currentPx based on existing marketPrice
-            if (priceData.currentPx !== undefined && p.marketPrice !== null) {
-                      const currentPx = priceData.currentPx;
-                      const oppositePx = 1 - currentPx;
-
-                      // Compare both possibilities to existing marketPrice
-                      const diffCurrent = Math.abs(currentPx - p.marketPrice);
-                      const diffOpposite = Math.abs(oppositePx - p.marketPrice);
-
-                      // Use whichever is closer (with some tolerance for market movement)
-                      const newPrice = diffCurrent <= diffOpposite ? currentPx : oppositePx;
-                      return { ...p, marketPrice: newPrice };
-            }
-
-            return p;
-          }));
   }, [wsPrices]);
 
   // Merge WebSocket events into event data and score history
@@ -259,17 +233,23 @@ const ScalpingDashboard = ({ pin }) => {
           const data = await res.json();
           if (data.positions) {
             // Transform and update positions
-            const synced = Object.entries(data.positions).map(([slug, pos]) => ({
-              id: slug,
-              market: pos.marketMetadata?.title || slug,
-              side: pos.marketMetadata?.outcome || 'Unknown',
-              shares: Math.abs(parseFloat(pos.netPosition)),
-              cost: parseFloat(pos.cost?.value || 0),
-              currentPrice: parseFloat(pos.cashValue?.value || 0) / Math.abs(parseFloat(pos.netPosition)),
-              currentValue: parseFloat(pos.cashValue?.value || 0),
-              synced: true,
-              slug: slug,
-            }));
+            const synced = Object.entries(data.positions).map(([slug, pos]) => {
+              const shares = Math.abs(parseFloat(pos.netPosition));
+              const cost = parseFloat(pos.cost?.value || 0);
+              return {
+                id: slug,
+                market: pos.marketMetadata?.title || slug,
+                side: pos.marketMetadata?.outcome || 'Unknown',
+                shares: shares,
+                cost: cost,
+                // FIX: Calculate entryPrice explicitly to prevent NaN
+                entryPrice: shares > 0 ? cost / shares : 0,
+                currentPrice: parseFloat(pos.cashValue?.value || 0) / shares,
+                currentValue: parseFloat(pos.cashValue?.value || 0),
+                synced: true,
+                slug: slug,
+              };
+            });
             setPositions(synced);
             console.log('Auto-sync complete:', synced.length, 'positions');
           }
@@ -591,20 +571,35 @@ const ScalpingDashboard = ({ pin }) => {
     }));
   };
 
+  // Helper: Get absolute latest price from WebSocket, falling back to API snapshot
+  const getLivePositionData = (p) => {
+    const wsData = wsPrices[p.id];
+    let livePrice = null;
+
+    if (wsData) {
+      // 1. Try exact side match
+      if (wsData.sides && wsData.sides[p.side] !== undefined) {
+        livePrice = wsData.sides[p.side];
+      }
+      // 2. Fallback: Infer from currentPx (binary market logic)
+      else if (wsData.currentPx !== undefined) {
+        const current = wsData.currentPx;
+        const opposite = 1 - current;
+        // Heuristic: Use whichever price is closer to our last known price
+        const refPrice = p.marketPrice || p.currentPrice || 0.5;
+        livePrice = Math.abs(current - refPrice) < Math.abs(opposite - refPrice) ? current : opposite;
+      }
+    }
+
+    // Use live WS price if available, otherwise fallback to API snapshot
+    const finalPrice = livePrice !== null ? livePrice : p.currentPrice;
+    const value = p.shares * finalPrice;
+
+    return { value, price: finalPrice };
+  };
+
   const totalUnrealized = positions.reduce((sum, p) => {
-    let value;
-    // PRIORITIZE LIVE DATA: If we have a live market price, use it
-    if (p.marketPrice !== null && p.marketPrice !== undefined) {
-      value = p.shares * p.marketPrice;
-    }
-    // Fallback to API snapshot if no live price
-    else if (p.synced && p.currentValue !== undefined) {
-      value = p.currentValue;
-    }
-    // Fallback to manual price
-    else {
-      value = p.shares * p.currentPrice;
-    }
+    const { value } = getLivePositionData(p);
     return sum + (value - p.cost);
   }, 0);
   const totalRealized = history.reduce((sum, t) => sum + t.realizedPnL, 0);
@@ -965,19 +960,12 @@ const ScalpingDashboard = ({ pin }) => {
           ) : (
             <div style={s.positionCards}>
               {positions.map(p => {
-                // Calculate live value - prioritize WebSocket marketPrice
-                let value;
-                if (p.marketPrice !== null && p.marketPrice !== undefined) {
-                  value = p.shares * p.marketPrice;
-                } else if (p.synced && p.currentValue !== undefined) {
-                  value = p.currentValue;
-                } else {
-                  value = p.shares * p.currentPrice;
-                }
+                // Use helper for instant WebSocket data
+                const { value, price } = getLivePositionData(p);
 
                 const pnl = value - p.cost;
-                // Market price is just for display (informational)
-                const displayPrice = p.marketPrice !== null ? p.marketPrice : p.currentPrice;
+                // Use live price from helper for display
+                const displayPrice = price;
                 // Event data for this market
                 const event = eventData[p.id];
                 const isLive = event?.live;
