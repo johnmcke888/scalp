@@ -78,8 +78,17 @@ export async function GET(request) {
           });
         }
 
+        // Extract event data (score, period, clock, live status)
+        const eventData = market.events?.[0] || {};
         prices[market.slug] = {
           sides, // { "Rockets": 0.434, "Minutemen": 0.597 }
+          event: {
+            score: eventData.score || null,
+            period: eventData.period || null,
+            elapsed: eventData.elapsed || null,
+            live: eventData.live || false,
+            ended: eventData.ended || false,
+          },
         };
       }
     });

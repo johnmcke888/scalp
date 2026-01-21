@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 const ScalpingDashboard = ({ pin }) => {
   const [positions, setPositions] = useState(() => {
@@ -28,6 +29,30 @@ const ScalpingDashboard = ({ pin }) => {
   const [balance, setBalance] = useState(null);
   const [lastSynced, setLastSynced] = useState(null);
 
+  // Price history: { slug: { sideName: [{ time, price }, ...], ... }, ... }
+  const [priceHistory, setPriceHistory] = useState(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const saved = localStorage.getItem('scalper-price-history');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+
+  // Watched markets (continue tracking after cash-out)
+  const [watchedMarkets, setWatchedMarkets] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = localStorage.getItem('scalper-watched-markets');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  // Event data (scores, periods) by slug
+  const [eventData, setEventData] = useState({});
+
+  // Track which charts are expanded
+  const [expandedCharts, setExpandedCharts] = useState({});
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('scalper-positions-v2', JSON.stringify(positions));
@@ -39,6 +64,26 @@ const ScalpingDashboard = ({ pin }) => {
       localStorage.setItem('scalper-history-v2', JSON.stringify(history));
     }
   }, [history]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Limit price history to last 500 points per side to avoid storage bloat
+      const trimmedHistory = {};
+      for (const [slug, sides] of Object.entries(priceHistory)) {
+        trimmedHistory[slug] = {};
+        for (const [side, points] of Object.entries(sides)) {
+          trimmedHistory[slug][side] = points.slice(-500);
+        }
+      }
+      localStorage.setItem('scalper-price-history', JSON.stringify(trimmedHistory));
+    }
+  }, [priceHistory]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('scalper-watched-markets', JSON.stringify(watchedMarkets));
+    }
+  }, [watchedMarkets]);
 
   const fetchPrices = async (slugs) => {
     if (!slugs || slugs.length === 0) return {};
@@ -54,6 +99,49 @@ const ScalpingDashboard = ({ pin }) => {
     } catch (err) {
       console.error('Price fetch error:', err);
       return {};
+    }
+  };
+
+  // Update price history with new prices
+  const updatePriceHistory = (prices) => {
+    const now = Date.now();
+    setPriceHistory(prev => {
+      const updated = { ...prev };
+      for (const [slug, priceData] of Object.entries(prices)) {
+        if (!priceData.sides) continue;
+        if (!updated[slug]) {
+          updated[slug] = {};
+        }
+        for (const [side, price] of Object.entries(priceData.sides)) {
+          if (price === null || price === undefined) continue;
+          if (!updated[slug][side]) {
+            updated[slug][side] = [];
+          }
+          // Only add if price changed or it's been more than 10 seconds
+          const lastPoint = updated[slug][side][updated[slug][side].length - 1];
+          if (!lastPoint || lastPoint.price !== price || now - lastPoint.time > 10000) {
+            updated[slug][side].push({ time: now, price });
+          }
+        }
+      }
+      return updated;
+    });
+
+    // Update event data
+    const newEventData = {};
+    for (const [slug, priceData] of Object.entries(prices)) {
+      if (priceData.event) {
+        newEventData[slug] = priceData.event;
+      }
+    }
+    setEventData(prev => ({ ...prev, ...newEventData }));
+
+    // Check for ended events and remove from watched list
+    const endedSlugs = Object.entries(newEventData)
+      .filter(([, ev]) => ev.ended)
+      .map(([slug]) => slug);
+    if (endedSlugs.length > 0) {
+      setWatchedMarkets(prev => prev.filter(slug => !endedSlugs.includes(slug)));
     }
   };
 
@@ -103,9 +191,13 @@ const ScalpingDashboard = ({ pin }) => {
 
       const transformed = transformPositions(data);
 
-      // Fetch market prices for all synced positions
-      const slugs = transformed.map(p => p.id);
-      const prices = await fetchPrices(slugs);
+      // Fetch market prices for all synced positions + watched markets
+      const positionSlugs = transformed.map(p => p.id);
+      const allSlugs = [...new Set([...positionSlugs, ...watchedMarkets])];
+      const prices = await fetchPrices(allSlugs);
+
+      // Update price history and event data
+      updatePriceHistory(prices);
 
       // Update positions with market price data (for display only)
       // Match position's side (e.g., "Minutemen") to get the correct price
@@ -197,10 +289,20 @@ const ScalpingDashboard = ({ pin }) => {
       won: null,
       hindsightValue: null,
       hindsightDiff: null,
+      closedAtTime: Date.now(), // For marking on the chart
     };
 
     setHistory([trade, ...history]);
     setPositions(positions.filter(p => p.id !== closing.id));
+
+    // Add to watched markets to continue tracking prices (if synced position)
+    if (closing.synced && closing.id) {
+      setWatchedMarkets(prev => {
+        if (prev.includes(closing.id)) return prev;
+        return [...prev, closing.id];
+      });
+    }
+
     setClosing(null);
     setCloseForm({ proceeds: '', fee: '' });
   };
@@ -262,6 +364,131 @@ const ScalpingDashboard = ({ pin }) => {
     setTimeAgo(formatTimeAgo(lastSynced));
     return () => clearInterval(interval);
   }, [lastSynced]);
+
+  // Format time for chart X-axis
+  const formatChartTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const minutes = Math.floor((Date.now() - timestamp) / 60000);
+    if (minutes < 1) return 'now';
+    if (minutes < 60) return `${minutes}m`;
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
+
+  // Toggle chart expansion
+  const toggleChart = (id) => {
+    setExpandedCharts(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // Build chart data for a market
+  const buildChartData = (slug, highlightSide = null) => {
+    const history = priceHistory[slug];
+    if (!history) return { data: [], sides: [] };
+
+    const sides = Object.keys(history);
+    if (sides.length === 0) return { data: [], sides: [] };
+
+    // Get all unique timestamps and sort them
+    const allTimestamps = new Set();
+    for (const sideHistory of Object.values(history)) {
+      for (const point of sideHistory) {
+        allTimestamps.add(point.time);
+      }
+    }
+    const sortedTimes = [...allTimestamps].sort((a, b) => a - b);
+
+    // Build data array with all sides
+    const data = sortedTimes.map(time => {
+      const point = { time };
+      for (const [side, sideHistory] of Object.entries(history)) {
+        // Find the closest price at or before this time
+        const pricePoint = [...sideHistory].reverse().find(p => p.time <= time);
+        if (pricePoint) {
+          point[side] = Math.round(pricePoint.price * 100); // Convert to cents
+        }
+      }
+      return point;
+    });
+
+    return { data, sides, highlightSide };
+  };
+
+  // Price chart component
+  const PriceChart = ({ slug, highlightSide, closedAtTime = null }) => {
+    const { data, sides } = buildChartData(slug, highlightSide);
+
+    if (data.length < 2) {
+      return (
+        <div style={s.chartEmpty}>
+          Not enough data yet. Keep syncing!
+        </div>
+      );
+    }
+
+    // Color palette - highlighted side gets bold color
+    const getLineColor = (side) => {
+      if (side === highlightSide) return '#222';
+      return '#bbb';
+    };
+
+    const getLineWidth = (side) => {
+      return side === highlightSide ? 2 : 1;
+    };
+
+    return (
+      <div style={s.chartContainer}>
+        <ResponsiveContainer width="100%" height={150}>
+          <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <XAxis
+              dataKey="time"
+              tickFormatter={formatChartTime}
+              tick={{ fontSize: 10, fill: '#888' }}
+              axisLine={{ stroke: '#ddd' }}
+              tickLine={false}
+            />
+            <YAxis
+              domain={['dataMin - 5', 'dataMax + 5']}
+              tick={{ fontSize: 10, fill: '#888' }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(v) => `${v}¢`}
+            />
+            <Tooltip
+              formatter={(value, name) => [`${value}¢`, name]}
+              labelFormatter={(ts) => new Date(ts).toLocaleTimeString()}
+              contentStyle={{ fontSize: 11, border: '1px solid #ccc', background: '#fff' }}
+            />
+            {closedAtTime && (
+              <ReferenceLine
+                x={closedAtTime}
+                stroke="#a00"
+                strokeDasharray="3 3"
+                label={{ value: 'sold', fontSize: 10, fill: '#a00' }}
+              />
+            )}
+            {sides.map(side => (
+              <Line
+                key={side}
+                type="monotone"
+                dataKey={side}
+                stroke={getLineColor(side)}
+                strokeWidth={getLineWidth(side)}
+                dot={false}
+                name={side}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+        <div style={s.chartLegend}>
+          {sides.map(side => (
+            <span key={side} style={{ ...s.legendItem, fontWeight: side === highlightSide ? 600 : 400 }}>
+              <span style={{ ...s.legendDot, background: getLineColor(side) }} />
+              {side}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div style={s.page}>
@@ -356,6 +583,10 @@ const ScalpingDashboard = ({ pin }) => {
                 const pnl = value - p.cost;
                 // Market price is just for display (informational)
                 const displayPrice = p.marketPrice !== null ? p.marketPrice : p.currentPrice;
+                // Event data for this market
+                const event = eventData[p.id];
+                const isLive = event?.live;
+                const isEnded = event?.ended;
 
                 return (
                   <div key={p.id} style={s.positionCard}>
@@ -363,6 +594,8 @@ const ScalpingDashboard = ({ pin }) => {
                       <div style={s.cardTitle}>
                         {p.market}
                         {p.synced && <span style={s.syncedBadge}>api</span>}
+                        {isLive && <span style={s.liveBadge}>LIVE</span>}
+                        {isEnded && <span style={s.endedBadge}>FINAL</span>}
                       </div>
                       <button
                         style={s.cashOutBtn}
@@ -378,6 +611,20 @@ const ScalpingDashboard = ({ pin }) => {
                     <div style={s.cardSubtitle}>
                       {p.side} · {p.shares} shares @ {(p.entryPrice * 100).toFixed(1)}¢
                     </div>
+                    {/* Live Score Display */}
+                    {event && event.score && (
+                      <div style={s.scoreDisplay}>
+                        <span style={s.scoreText}>{event.score}</span>
+                        {event.period && (
+                          <>
+                            <span style={s.scoreDot}>·</span>
+                            <span style={s.periodText}>
+                              {event.period} {event.elapsed || ''}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
                     <div style={s.cardHeroSection}>
                       <div style={{ ...s.cardHeroPnL, color: pnl >= 0 ? '#080' : '#a00' }}>
                         {pnl >= 0 ? '+' : '-'}${fmt(Math.abs(pnl))}
@@ -386,6 +633,20 @@ const ScalpingDashboard = ({ pin }) => {
                         ({pct(pnl, p.cost)}%)
                       </div>
                     </div>
+                    {/* Expandable Price Chart */}
+                    {p.synced && (
+                      <div style={s.chartSection}>
+                        <button
+                          style={s.chartToggle}
+                          onClick={() => toggleChart(p.id)}
+                        >
+                          {expandedCharts[p.id] ? '▲ Hide price chart' : '▼ Show price chart'}
+                        </button>
+                        {expandedCharts[p.id] && (
+                          <PriceChart slug={p.id} highlightSide={p.side} />
+                        )}
+                      </div>
+                    )}
                     <div style={s.cardFooterStats}>
                       <span>price: {(displayPrice * 100).toFixed(1)}¢</span>
                       <span style={s.footerDot}>·</span>
@@ -483,50 +744,108 @@ const ScalpingDashboard = ({ pin }) => {
           {history.length === 0 ? (
             <div style={s.empty}>no closed trades</div>
           ) : (
-            <table style={s.table}>
-              <thead>
-                <tr>
-                  <th style={s.th}>market</th>
-                  <th style={s.th}>side</th>
-                  <th style={s.thR}>cost</th>
-                  <th style={s.thR}>proceeds</th>
-                  <th style={s.thR}>p&l</th>
-                  <th style={s.th}>hindsight</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map(t => (
-                  <tr key={t.id} style={s.tr}>
-                    <td style={s.td}>{t.market}</td>
-                    <td style={s.td}>{t.side}</td>
-                    <td style={s.tdR}>${fmt(t.cost)}</td>
-                    <td style={s.tdR}>${fmt(t.netProceeds)}</td>
-                    <td style={{ ...s.tdR, color: t.realizedPnL >= 0 ? '#080' : '#a00', fontWeight: 600 }}>
-                      ${fmt(t.realizedPnL, true)}
-                    </td>
-                    <td style={s.td}>
-                      {!t.resolved ? (
-                        <span style={s.hindsightBtns}>
-                          <button style={s.btnTiny} onClick={() => markResolved(t.id, true)} title="would have won">✓</button>
-                          <button style={{ ...s.btnTiny, borderColor: '#a00', color: '#a00' }} onClick={() => markResolved(t.id, false)} title="would have lost">✗</button>
-                        </span>
-                      ) : (
-                        <span style={{ color: t.hindsightDiff <= 0 ? '#080' : '#a00' }}>
-                          {t.hindsightDiff <= 0
-                            ? `saved $${fmt(Math.abs(t.hindsightDiff))}`
-                            : `left $${fmt(t.hindsightDiff)}`}
-                        </span>
+            <div style={s.positionCards}>
+              {history.map(t => {
+                const event = eventData[t.id];
+                const isEnded = event?.ended;
+                const hasChart = priceHistory[t.id] && Object.keys(priceHistory[t.id]).length > 0;
+
+                return (
+                  <div key={t.id} style={s.historyCard}>
+                    <div style={s.cardHeader}>
+                      <div style={s.cardTitle}>
+                        {t.market}
+                        {isEnded && <span style={s.endedBadge}>FINAL</span>}
+                        {!isEnded && watchedMarkets.includes(t.id) && <span style={s.watchingBadge}>watching</span>}
+                      </div>
+                    </div>
+                    <div style={s.cardSubtitle}>
+                      {t.side} · was {t.shares} shares
+                    </div>
+                    {/* Final Score Display */}
+                    {event && event.score && (
+                      <div style={s.scoreDisplay}>
+                        <span style={s.scoreText}>{event.score}</span>
+                        {isEnded && (
+                          <>
+                            <span style={s.scoreDot}>·</span>
+                            <span style={s.periodText}>FINAL</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    {/* P&L Hero */}
+                    <div style={s.historyHeroSection}>
+                      <div style={{ ...s.historyPnL, color: t.realizedPnL >= 0 ? '#080' : '#a00' }}>
+                        You cashed out: {t.realizedPnL >= 0 ? '+' : ''}${fmt(t.realizedPnL)} ({pct(t.realizedPnL, t.cost)}%)
+                      </div>
+                      {t.resolved && (
+                        <div style={{ ...s.hindsightLine, color: t.hindsightDiff <= 0 ? '#080' : '#a00' }}>
+                          {t.won
+                            ? `If you held: +$${fmt(t.shares)} (${t.side} won)`
+                            : `If you held: $0.00 (${t.side} lost)`}
+                        </div>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      {t.resolved && t.hindsightDiff !== 0 && (
+                        <div style={s.hindsightSummary}>
+                          {t.hindsightDiff <= 0
+                            ? `Good call! Saved $${fmt(Math.abs(t.hindsightDiff))}`
+                            : `Left $${fmt(t.hindsightDiff)} on the table`}
+                        </div>
+                      )}
+                    </div>
+                    {/* Resolve Buttons */}
+                    {!t.resolved && (
+                      <div style={s.resolveSection}>
+                        <span style={s.resolveLabel}>How did it end?</span>
+                        <span style={s.hindsightBtns}>
+                          <button style={s.btnTiny} onClick={() => markResolved(t.id, true)}>
+                            {t.side} won
+                          </button>
+                          <button style={{ ...s.btnTiny, borderColor: '#a00', color: '#a00' }} onClick={() => markResolved(t.id, false)}>
+                            {t.side} lost
+                          </button>
+                        </span>
+                      </div>
+                    )}
+                    {/* Expandable Price Chart */}
+                    {hasChart && (
+                      <div style={s.chartSection}>
+                        <button
+                          style={s.chartToggle}
+                          onClick={() => toggleChart(`history-${t.id}`)}
+                        >
+                          {expandedCharts[`history-${t.id}`] ? '▲ Hide price chart' : '▼ Show price chart'}
+                        </button>
+                        {expandedCharts[`history-${t.id}`] && (
+                          <PriceChart
+                            slug={t.id}
+                            highlightSide={t.side}
+                            closedAtTime={t.closedAtTime}
+                          />
+                        )}
+                      </div>
+                    )}
+                    <div style={s.cardFooterStats}>
+                      <span>cost: ${fmt(t.cost)}</span>
+                      <span style={s.footerDot}>·</span>
+                      <span>proceeds: ${fmt(t.netProceeds)}</span>
+                      {t.fee > 0 && (
+                        <>
+                          <span style={s.footerDot}>·</span>
+                          <span>fee: ${fmt(t.fee)}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </section>
 
         <footer style={s.footer}>
-          v0.4 · data in localStorage · tap sync to fetch from polymarket
+          v0.5 · data in localStorage · tap sync to fetch from polymarket
         </footer>
       </div>
     </div>
@@ -946,6 +1265,137 @@ const s = {
     padding: 24,
     color: '#999',
     fontSize: 11,
+  },
+  // Live badge
+  liveBadge: {
+    marginLeft: 6,
+    padding: '2px 6px',
+    background: '#080',
+    fontSize: 9,
+    color: '#fff',
+    fontWeight: 600,
+    verticalAlign: 'middle',
+    letterSpacing: 0.5,
+  },
+  // Ended/Final badge
+  endedBadge: {
+    marginLeft: 6,
+    padding: '2px 6px',
+    background: '#666',
+    fontSize: 9,
+    color: '#fff',
+    fontWeight: 600,
+    verticalAlign: 'middle',
+    letterSpacing: 0.5,
+  },
+  // Watching badge (for closed positions still being tracked)
+  watchingBadge: {
+    marginLeft: 6,
+    padding: '2px 5px',
+    background: '#e8e8e0',
+    fontSize: 9,
+    color: '#666',
+    verticalAlign: 'middle',
+  },
+  // Score display
+  scoreDisplay: {
+    textAlign: 'center',
+    padding: '8px 0',
+    marginBottom: 4,
+  },
+  scoreText: {
+    fontSize: 18,
+    fontWeight: 600,
+    fontVariantNumeric: 'tabular-nums',
+  },
+  scoreDot: {
+    color: '#999',
+    margin: '0 8px',
+  },
+  periodText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  // Chart section
+  chartSection: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTop: '1px solid #eee',
+  },
+  chartToggle: {
+    background: 'none',
+    border: 'none',
+    fontFamily: 'inherit',
+    fontSize: 11,
+    color: '#666',
+    cursor: 'pointer',
+    padding: '8px 0',
+    width: '100%',
+    textAlign: 'left',
+  },
+  chartContainer: {
+    marginTop: 8,
+  },
+  chartEmpty: {
+    padding: 16,
+    textAlign: 'center',
+    fontSize: 11,
+    color: '#999',
+    fontStyle: 'italic',
+  },
+  chartLegend: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: 8,
+    fontSize: 11,
+  },
+  legendItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    color: '#666',
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  // History card styles
+  historyCard: {
+    border: '1px solid #ddd',
+    background: '#fafaf8',
+    padding: 16,
+  },
+  historyHeroSection: {
+    padding: '12px 0',
+  },
+  historyPnL: {
+    fontSize: 14,
+    fontWeight: 500,
+    marginBottom: 4,
+  },
+  hindsightLine: {
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  hindsightSummary: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  resolveSection: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    padding: '8px 0',
+    borderTop: '1px solid #eee',
+    marginTop: 8,
+  },
+  resolveLabel: {
+    fontSize: 11,
+    color: '#888',
   },
 };
 
