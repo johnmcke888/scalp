@@ -21,3 +21,22 @@ input:focus, button:focus {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+/* Price flash animations */
+@keyframes flash-green {
+  0% { background-color: rgba(22, 163, 74, 0.3); }
+  100% { background-color: transparent; }
+}
+
+@keyframes flash-red {
+  0% { background-color: rgba(220, 38, 38, 0.3); }
+  100% { background-color: transparent; }
+}
+
+.price-flash-up {
+  animation: flash-green 0.5s ease-out;
+}
+
+.price-flash-down {
+  animation: flash-red 0.5s ease-out;
+}
