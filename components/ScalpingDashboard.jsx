@@ -38,6 +38,15 @@ const ScalpingDashboard = ({ pin }) => {
     } catch { return {}; }
   });
 
+  // Score history: { slug: [{ time, score, period, elapsed }, ...], ... }
+  const [scoreHistory, setScoreHistory] = useState(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const saved = localStorage.getItem('scalper-score-history');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+
   // Watched markets (continue tracking after cash-out)
   const [watchedMarkets, setWatchedMarkets] = useState(() => {
     if (typeof window === 'undefined') return [];
@@ -78,6 +87,17 @@ const ScalpingDashboard = ({ pin }) => {
       localStorage.setItem('scalper-price-history', JSON.stringify(trimmedHistory));
     }
   }, [priceHistory]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Limit score history to last 500 points per market to avoid storage bloat
+      const trimmedHistory = {};
+      for (const [slug, points] of Object.entries(scoreHistory)) {
+        trimmedHistory[slug] = points.slice(-500);
+      }
+      localStorage.setItem('scalper-score-history', JSON.stringify(trimmedHistory));
+    }
+  }, [scoreHistory]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -135,6 +155,34 @@ const ScalpingDashboard = ({ pin }) => {
       }
     }
     setEventData(prev => ({ ...prev, ...newEventData }));
+
+    // Update score history
+    setScoreHistory(prev => {
+      const updated = { ...prev };
+      for (const [slug, priceData] of Object.entries(prices)) {
+        if (!priceData.event || !priceData.event.score) continue;
+        if (!updated[slug]) {
+          updated[slug] = [];
+        }
+        // Parse score (e.g., "3 - 2" -> { home: 3, away: 2 })
+        const scoreMatch = priceData.event.score.match(/(\d+)\s*-\s*(\d+)/);
+        if (!scoreMatch) continue;
+        const home = parseInt(scoreMatch[1], 10);
+        const away = parseInt(scoreMatch[2], 10);
+        // Only add if score changed or it's been more than 30 seconds
+        const lastPoint = updated[slug][updated[slug].length - 1];
+        if (!lastPoint || lastPoint.home !== home || lastPoint.away !== away || now - lastPoint.time > 30000) {
+          updated[slug].push({
+            time: now,
+            home,
+            away,
+            period: priceData.event.period || null,
+            elapsed: priceData.event.elapsed || null,
+          });
+        }
+      }
+      return updated;
+    });
 
     // Check for ended events and remove from watched list
     const endedSlugs = Object.entries(newEventData)
@@ -374,9 +422,16 @@ const ScalpingDashboard = ({ pin }) => {
     return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   };
 
-  // Toggle chart expansion
-  const toggleChart = (id) => {
-    setExpandedCharts(prev => ({ ...prev, [id]: !prev[id] }));
+  // Toggle chart expansion (supports chart types: 'price' or 'score')
+  const toggleChart = (id, chartType = 'price') => {
+    setExpandedCharts(prev => {
+      // If clicking same type that's active, close it
+      if (prev[id] === chartType) {
+        return { ...prev, [id]: null };
+      }
+      // Otherwise, switch to the new type
+      return { ...prev, [id]: chartType };
+    });
   };
 
   // Build chart data for a market
@@ -474,6 +529,7 @@ const ScalpingDashboard = ({ pin }) => {
                 strokeWidth={getLineWidth(side)}
                 dot={false}
                 name={side}
+                isAnimationActive={false}
               />
             ))}
           </LineChart>
@@ -485,6 +541,96 @@ const ScalpingDashboard = ({ pin }) => {
               {side}
             </span>
           ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Build score chart data for a market
+  const buildScoreChartData = (slug) => {
+    const history = scoreHistory[slug];
+    if (!history || history.length < 2) return { data: [], hasData: false };
+
+    // Transform score history into chart data
+    const data = history.map(point => ({
+      time: point.time,
+      Home: point.home,
+      Away: point.away,
+    }));
+
+    return { data, hasData: true };
+  };
+
+  // Score chart component
+  const ScoreChart = ({ slug, closedAtTime = null }) => {
+    const { data, hasData } = buildScoreChartData(slug);
+
+    if (!hasData) {
+      return (
+        <div style={s.chartEmpty}>
+          Not enough score data yet. Keep syncing!
+        </div>
+      );
+    }
+
+    return (
+      <div style={s.chartContainer}>
+        <ResponsiveContainer width="100%" height={120}>
+          <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <XAxis
+              dataKey="time"
+              tickFormatter={formatChartTime}
+              tick={{ fontSize: 10, fill: '#888' }}
+              axisLine={{ stroke: '#ddd' }}
+              tickLine={false}
+            />
+            <YAxis
+              domain={[0, 'auto']}
+              tick={{ fontSize: 10, fill: '#888' }}
+              axisLine={false}
+              tickLine={false}
+              allowDecimals={false}
+            />
+            <Tooltip
+              formatter={(value, name) => [value, name]}
+              labelFormatter={(ts) => new Date(ts).toLocaleTimeString()}
+              contentStyle={{ fontSize: 11, border: '1px solid #ccc', background: '#fff' }}
+            />
+            {closedAtTime && (
+              <ReferenceLine
+                x={closedAtTime}
+                stroke="#a00"
+                strokeDasharray="3 3"
+                label={{ value: 'sold', fontSize: 10, fill: '#a00' }}
+              />
+            )}
+            <Line
+              type="stepAfter"
+              dataKey="Home"
+              stroke="#2563eb"
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+            />
+            <Line
+              type="stepAfter"
+              dataKey="Away"
+              stroke="#dc2626"
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+        <div style={s.chartLegend}>
+          <span style={s.legendItem}>
+            <span style={{ ...s.legendDot, background: '#2563eb' }} />
+            Home
+          </span>
+          <span style={s.legendItem}>
+            <span style={{ ...s.legendDot, background: '#dc2626' }} />
+            Away
+          </span>
         </div>
       </div>
     );
@@ -633,17 +779,34 @@ const ScalpingDashboard = ({ pin }) => {
                         ({pct(pnl, p.cost)}%)
                       </div>
                     </div>
-                    {/* Expandable Price Chart */}
+                    {/* Expandable Charts */}
                     {p.synced && (
                       <div style={s.chartSection}>
-                        <button
-                          style={s.chartToggle}
-                          onClick={() => toggleChart(p.id)}
-                        >
-                          {expandedCharts[p.id] ? '▲ Hide price chart' : '▼ Show price chart'}
-                        </button>
-                        {expandedCharts[p.id] && (
+                        <div style={s.chartToggles}>
+                          <button
+                            style={{
+                              ...s.chartToggleBtn,
+                              ...(expandedCharts[p.id] === 'price' ? s.chartToggleBtnActive : {})
+                            }}
+                            onClick={() => toggleChart(p.id, 'price')}
+                          >
+                            Price
+                          </button>
+                          <button
+                            style={{
+                              ...s.chartToggleBtn,
+                              ...(expandedCharts[p.id] === 'score' ? s.chartToggleBtnActive : {})
+                            }}
+                            onClick={() => toggleChart(p.id, 'score')}
+                          >
+                            Score
+                          </button>
+                        </div>
+                        {expandedCharts[p.id] === 'price' && (
                           <PriceChart slug={p.id} highlightSide={p.side} />
+                        )}
+                        {expandedCharts[p.id] === 'score' && (
+                          <ScoreChart slug={p.id} />
                         )}
                       </div>
                     )}
@@ -748,7 +911,9 @@ const ScalpingDashboard = ({ pin }) => {
               {history.map(t => {
                 const event = eventData[t.id];
                 const isEnded = event?.ended;
-                const hasChart = priceHistory[t.id] && Object.keys(priceHistory[t.id]).length > 0;
+                const hasPriceChart = priceHistory[t.id] && Object.keys(priceHistory[t.id]).length > 0;
+                const hasScoreChart = scoreHistory[t.id] && scoreHistory[t.id].length >= 2;
+                const hasAnyChart = hasPriceChart || hasScoreChart;
 
                 return (
                   <div key={t.id} style={s.historyCard}>
@@ -808,19 +973,43 @@ const ScalpingDashboard = ({ pin }) => {
                         </span>
                       </div>
                     )}
-                    {/* Expandable Price Chart */}
-                    {hasChart && (
+                    {/* Expandable Charts */}
+                    {hasAnyChart && (
                       <div style={s.chartSection}>
-                        <button
-                          style={s.chartToggle}
-                          onClick={() => toggleChart(`history-${t.id}`)}
-                        >
-                          {expandedCharts[`history-${t.id}`] ? '▲ Hide price chart' : '▼ Show price chart'}
-                        </button>
-                        {expandedCharts[`history-${t.id}`] && (
+                        <div style={s.chartToggles}>
+                          {hasPriceChart && (
+                            <button
+                              style={{
+                                ...s.chartToggleBtn,
+                                ...(expandedCharts[`history-${t.id}`] === 'price' ? s.chartToggleBtnActive : {})
+                              }}
+                              onClick={() => toggleChart(`history-${t.id}`, 'price')}
+                            >
+                              Price
+                            </button>
+                          )}
+                          {hasScoreChart && (
+                            <button
+                              style={{
+                                ...s.chartToggleBtn,
+                                ...(expandedCharts[`history-${t.id}`] === 'score' ? s.chartToggleBtnActive : {})
+                              }}
+                              onClick={() => toggleChart(`history-${t.id}`, 'score')}
+                            >
+                              Score
+                            </button>
+                          )}
+                        </div>
+                        {expandedCharts[`history-${t.id}`] === 'price' && (
                           <PriceChart
                             slug={t.id}
                             highlightSide={t.side}
+                            closedAtTime={t.closedAtTime}
+                          />
+                        )}
+                        {expandedCharts[`history-${t.id}`] === 'score' && (
+                          <ScoreChart
+                            slug={t.id}
                             closedAtTime={t.closedAtTime}
                           />
                         )}
@@ -1332,6 +1521,26 @@ const s = {
     padding: '8px 0',
     width: '100%',
     textAlign: 'left',
+  },
+  chartToggles: {
+    display: 'flex',
+    gap: 8,
+    marginBottom: 8,
+  },
+  chartToggleBtn: {
+    background: 'none',
+    border: '1px solid #ccc',
+    borderRadius: 4,
+    fontFamily: 'inherit',
+    fontSize: 11,
+    color: '#666',
+    cursor: 'pointer',
+    padding: '6px 12px',
+  },
+  chartToggleBtnActive: {
+    background: '#222',
+    borderColor: '#222',
+    color: '#fff',
   },
   chartContainer: {
     marginTop: 8,
