@@ -184,12 +184,18 @@ const ScalpingDashboard = ({ pin }) => {
       return updated;
     });
 
-    // Check for ended events and remove from watched list
+    // Check for ended events and remove from watched list after 5 minutes
     const endedSlugs = Object.entries(newEventData)
       .filter(([, ev]) => ev.ended)
       .map(([slug]) => slug);
     if (endedSlugs.length > 0) {
-      setWatchedMarkets(prev => prev.filter(slug => !endedSlugs.includes(slug)));
+      const currentTime = Date.now();
+      setWatchedMarkets(prev => prev.filter(w => {
+        if (!endedSlugs.includes(w.slug)) return true;
+        // Keep for 5 more minutes after game ends, then auto-remove
+        const endedAgo = currentTime - (newEventData[w.slug]?.endTime || currentTime);
+        return endedAgo < 5 * 60 * 1000;
+      }));
     }
   };
 
@@ -241,7 +247,8 @@ const ScalpingDashboard = ({ pin }) => {
 
       // Fetch market prices for all synced positions + watched markets
       const positionSlugs = transformed.map(p => p.id);
-      const allSlugs = [...new Set([...positionSlugs, ...watchedMarkets])];
+      const watchedSlugs = watchedMarkets.map(w => w.slug);
+      const allSlugs = [...new Set([...positionSlugs, ...watchedSlugs])];
       const prices = await fetchPrices(allSlugs);
 
       // Update price history and event data
@@ -345,9 +352,21 @@ const ScalpingDashboard = ({ pin }) => {
 
     // Add to watched markets to continue tracking prices (if synced position)
     if (closing.synced && closing.id) {
+      const watchEntry = {
+        slug: closing.id,
+        side: closing.side,
+        exitPrice: closing.marketPrice || closing.currentPrice,
+        exitTime: Date.now(),
+        shares: closing.shares,
+        cost: closing.cost,
+        exitValue: netProceeds,
+        pnl: netProceeds - closing.cost,
+        market: closing.market, // Store market name for display
+      };
       setWatchedMarkets(prev => {
-        if (prev.includes(closing.id)) return prev;
-        return [...prev, closing.id];
+        // Don't duplicate
+        if (prev.some(w => w.slug === closing.id)) return prev;
+        return [...prev, watchEntry];
       });
     }
 
@@ -892,6 +911,157 @@ const ScalpingDashboard = ({ pin }) => {
           );
         })()}
 
+        {/* Recently Closed - Continue tracking after cash-out */}
+        {watchedMarkets.length > 0 && (
+          <section style={s.section}>
+            <div style={s.sectionHead}>recently closed ({watchedMarkets.length})</div>
+            <div style={s.positionCards}>
+              {watchedMarkets.map(watched => {
+                const event = eventData[watched.slug];
+                const isLive = event?.live;
+                const isEnded = event?.ended;
+
+                // Get current price for this side
+                const currentPriceData = priceHistory[watched.slug]?.[watched.side];
+                const latestPrice = currentPriceData?.length > 0
+                  ? currentPriceData[currentPriceData.length - 1].price
+                  : watched.exitPrice;
+
+                // Calculate what the position would be worth now
+                const wouldBeValue = watched.shares * latestPrice;
+                const wouldBePnl = wouldBeValue - watched.cost;
+
+                // Hindsight: difference between what you would have vs what you got
+                const hindsightDiff = wouldBePnl - watched.pnl;
+
+                const hasPriceChart = priceHistory[watched.slug] && Object.keys(priceHistory[watched.slug]).length > 0;
+                const hasScoreChart = scoreHistory[watched.slug] && scoreHistory[watched.slug].length >= 2;
+                const hasAnyChart = hasPriceChart || hasScoreChart;
+
+                // Function to dismiss a watched market
+                const dismissWatched = (slug) => {
+                  setWatchedMarkets(prev => prev.filter(w => w.slug !== slug));
+                };
+
+                return (
+                  <div key={watched.slug} style={s.closedCard}>
+                    <div style={s.cardHeader}>
+                      <div style={s.cardTitle}>
+                        {watched.market}
+                        <span style={s.closedBadge}>CLOSED</span>
+                        {isLive && <span style={s.liveBadge}>LIVE</span>}
+                        {isEnded && <span style={s.endedBadge}>FINAL</span>}
+                      </div>
+                      <button
+                        style={s.dismissBtn}
+                        onClick={() => dismissWatched(watched.slug)}
+                        title="Stop watching"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div style={s.cardSubtitle}>
+                      {watched.side} · was {watched.shares} shares
+                    </div>
+
+                    {/* Live Score Display */}
+                    {event && event.score && (
+                      <div style={s.scoreDisplay}>
+                        <span style={s.scoreText}>{event.score}</span>
+                        {event.period && (
+                          <>
+                            <span style={s.scoreDot}>·</span>
+                            <span style={s.periodText}>
+                              {isEnded ? 'FINAL' : `${event.period} ${event.elapsed || ''}`}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Hindsight Comparison */}
+                    <div style={s.hindsightSection}>
+                      <div style={s.hindsightRow}>
+                        <span style={s.hindsightLabel}>You exited:</span>
+                        <span style={{ ...s.hindsightValue, color: watched.pnl >= 0 ? '#080' : '#a00' }}>
+                          {watched.pnl >= 0 ? '+' : ''}${fmt(watched.pnl)} @ {(watched.exitPrice * 100).toFixed(1)}¢
+                        </span>
+                      </div>
+                      <div style={s.hindsightRow}>
+                        <span style={s.hindsightLabel}>If you held:</span>
+                        <span style={{ ...s.hindsightValue, color: wouldBePnl >= 0 ? '#080' : '#a00' }}>
+                          {wouldBePnl >= 0 ? '+' : ''}${fmt(wouldBePnl)} @ {(latestPrice * 100).toFixed(1)}¢
+                        </span>
+                      </div>
+                      <div style={{ ...s.hindsightSummaryBox, background: hindsightDiff > 0 ? '#fff5f5' : '#f5fff5' }}>
+                        {hindsightDiff > 0 ? (
+                          <span style={{ color: '#a00' }}>
+                            Left ${fmt(hindsightDiff)} on the table
+                          </span>
+                        ) : hindsightDiff < 0 ? (
+                          <span style={{ color: '#080' }}>
+                            Good exit! Saved ${fmt(Math.abs(hindsightDiff))}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#666' }}>
+                            Break even so far
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Expandable Charts */}
+                    {hasAnyChart && (
+                      <div style={s.chartSection}>
+                        <button
+                          style={{
+                            ...s.chartToggleBtn,
+                            ...(expandedCharts[`watched-${watched.slug}`] ? s.chartToggleBtnActive : {})
+                          }}
+                          onClick={() => toggleChart(`watched-${watched.slug}`)}
+                        >
+                          {expandedCharts[`watched-${watched.slug}`] ? '▼ Hide charts' : '▶ Show charts'}
+                        </button>
+                        {expandedCharts[`watched-${watched.slug}`] && (
+                          <div style={s.chartsStack}>
+                            {hasPriceChart && (
+                              <div style={s.chartBlock}>
+                                <div style={s.chartLabel}>PRICE</div>
+                                <PriceChart
+                                  slug={watched.slug}
+                                  highlightSide={watched.side}
+                                  closedAtTime={watched.exitTime}
+                                />
+                              </div>
+                            )}
+                            {hasScoreChart && (
+                              <div style={s.chartBlock}>
+                                <div style={s.chartLabel}>SCORE</div>
+                                <ScoreChart
+                                  slug={watched.slug}
+                                  closedAtTime={watched.exitTime}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div style={s.cardFooterStats}>
+                      <span>cost: ${fmt(watched.cost)}</span>
+                      <span style={s.footerDot}>·</span>
+                      <span>got: ${fmt(watched.exitValue)}</span>
+                      <span style={s.footerDot}>·</span>
+                      <span>would be: ${fmt(wouldBeValue)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {/* History */}
         <section style={s.section}>
           <div style={s.sectionHead}>history ({history.length})</div>
@@ -912,7 +1082,7 @@ const ScalpingDashboard = ({ pin }) => {
                       <div style={s.cardTitle}>
                         {t.market}
                         {isEnded && <span style={s.endedBadge}>FINAL</span>}
-                        {!isEnded && watchedMarkets.includes(t.id) && <span style={s.watchingBadge}>watching</span>}
+                        {!isEnded && watchedMarkets.some(w => w.slug === t.id) && <span style={s.watchingBadge}>watching</span>}
                       </div>
                     </div>
                     <div style={s.cardSubtitle}>
@@ -1608,6 +1778,62 @@ const s = {
   resolveLabel: {
     fontSize: 11,
     color: '#888',
+  },
+  // Recently closed / watched markets styles
+  closedCard: {
+    border: '1px solid #ccc',
+    background: '#f8f8f4',
+    padding: 16,
+    position: 'relative',
+  },
+  closedBadge: {
+    marginLeft: 6,
+    padding: '2px 6px',
+    background: '#888',
+    fontSize: 9,
+    color: '#fff',
+    fontWeight: 600,
+    verticalAlign: 'middle',
+    letterSpacing: 0.5,
+  },
+  dismissBtn: {
+    background: 'transparent',
+    border: '1px solid #ccc',
+    width: 32,
+    height: 32,
+    fontSize: 18,
+    color: '#888',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    lineHeight: 1,
+  },
+  hindsightSection: {
+    padding: '12px 0',
+  },
+  hindsightRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '4px 0',
+  },
+  hindsightLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  hindsightValue: {
+    fontSize: 13,
+    fontWeight: 500,
+    fontVariantNumeric: 'tabular-nums',
+  },
+  hindsightSummaryBox: {
+    marginTop: 8,
+    padding: '10px 12px',
+    fontSize: 13,
+    fontWeight: 500,
+    textAlign: 'center',
+    border: '1px solid #ddd',
   },
 };
 
