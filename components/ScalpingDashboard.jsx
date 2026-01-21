@@ -3,6 +3,114 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { usePolymarketWebSocket } from '@/hooks/usePolymarketWebSocket';
+import { getTeamColor } from '@/lib/teamColors';
+
+// Inline sparkline component - shows recent price trajectory
+const Sparkline = ({ data, currentValue, entryValue, color = '#222', width = 180, height = 28 }) => {
+  if (!data || data.length < 2) {
+    // Placeholder when no data
+    return (
+      <div style={{
+        width,
+        height,
+        background: '#f5f5f0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <span style={{ fontSize: 10, color: '#999' }}>waiting for data...</span>
+      </div>
+    );
+  }
+
+  // Get last N points (or all if fewer)
+  const points = data.slice(-30);
+  const prices = points.map(p => p.price);
+  const min = Math.min(...prices, entryValue || Infinity);
+  const max = Math.max(...prices, entryValue || -Infinity);
+  const range = max - min || 0.01;
+
+  // Add padding to range
+  const padding = range * 0.1;
+  const displayMin = min - padding;
+  const displayMax = max + padding;
+  const displayRange = displayMax - displayMin;
+
+  // Build SVG path
+  const pathPoints = points.map((p, i) => {
+    const x = (i / (points.length - 1)) * width;
+    const y = height - ((p.price - displayMin) / displayRange) * height;
+    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+  }).join(' ');
+
+  // Current price dot position
+  const currentY = height - ((currentValue - displayMin) / displayRange) * height;
+
+  // Entry line position
+  const entryY = entryValue ? height - ((entryValue - displayMin) / displayRange) * height : null;
+
+  return (
+    <svg width={width} height={height} style={{ display: 'block' }}>
+      {/* Entry reference line (dashed) */}
+      {entryY !== null && (
+        <line
+          x1={0}
+          y1={entryY}
+          x2={width}
+          y2={entryY}
+          stroke="#999"
+          strokeWidth={1}
+          strokeDasharray="3,3"
+        />
+      )}
+      {/* Price line */}
+      <path
+        d={pathPoints}
+        fill="none"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Current price dot */}
+      <circle
+        cx={width}
+        cy={currentY}
+        r={4}
+        fill={color}
+      />
+    </svg>
+  );
+};
+
+// Momentum indicator - shows if price is trending up/down recently
+const MomentumIndicator = ({ priceHistory }) => {
+  if (!priceHistory || priceHistory.length < 3) return null;
+
+  // Compare last 5 points (or fewer if not available)
+  const recent = priceHistory.slice(-5);
+  if (recent.length < 2) return null;
+
+  const oldest = recent[0].price;
+  const newest = recent[recent.length - 1].price;
+  const change = ((newest - oldest) / oldest) * 100;
+
+  // Ignore tiny changes (noise)
+  if (Math.abs(change) < 0.3) return null;
+
+  const isUp = change > 0;
+
+  return (
+    <span style={{
+      color: isUp ? '#16a34a' : '#dc2626',
+      fontSize: 13,
+      fontWeight: 600,
+      fontVariantNumeric: 'tabular-nums',
+    }}>
+      {isUp ? '▲' : '▼'} {Math.abs(change).toFixed(1)}%
+    </span>
+  );
+};
 
 const ScalpingDashboard = ({ pin }) => {
   const [positions, setPositions] = useState(() => {
@@ -700,15 +808,9 @@ const ScalpingDashboard = ({ pin }) => {
       );
     }
 
-    // Color palette - highlighted side gets bold color
-    const getLineColor = (side) => {
-      if (side === highlightSide) return '#222';
-      return '#bbb';
-    };
-
-    const getLineWidth = (side) => {
-      return side === highlightSide ? 2 : 1;
-    };
+    // Use actual team colors
+    const getLineColor = (side) => getTeamColor(side);
+    const getLineWidth = (side) => side === highlightSide ? 3 : 1.5;
 
     return (
       <div style={s.chartContainer}>
@@ -736,9 +838,9 @@ const ScalpingDashboard = ({ pin }) => {
             {closedAtTime && (
               <ReferenceLine
                 x={closedAtTime}
-                stroke="#a00"
+                stroke="#dc2626"
                 strokeDasharray="3 3"
-                label={{ value: 'sold', fontSize: 10, fill: '#a00' }}
+                label={{ value: 'exit', fontSize: 10, fill: '#dc2626' }}
               />
             )}
             {sides.map(side => (
@@ -748,6 +850,7 @@ const ScalpingDashboard = ({ pin }) => {
                 dataKey={side}
                 stroke={getLineColor(side)}
                 strokeWidth={getLineWidth(side)}
+                strokeOpacity={side === highlightSide ? 1 : 0.4}
                 dot={false}
                 name={side}
                 isAnimationActive={false}
@@ -757,7 +860,11 @@ const ScalpingDashboard = ({ pin }) => {
         </ResponsiveContainer>
         <div style={s.chartLegend}>
           {sides.map(side => (
-            <span key={side} style={{ ...s.legendItem, fontWeight: side === highlightSide ? 600 : 400 }}>
+            <span key={side} style={{
+              ...s.legendItem,
+              fontWeight: side === highlightSide ? 600 : 400,
+              opacity: side === highlightSide ? 1 : 0.6,
+            }}>
               <span style={{ ...s.legendDot, background: getLineColor(side) }} />
               {side}
             </span>
@@ -960,95 +1067,121 @@ const ScalpingDashboard = ({ pin }) => {
           ) : (
             <div style={s.positionCards}>
               {positions.map(p => {
-                // Use helper for instant WebSocket data
                 const { value, price } = getLivePositionData(p);
-
                 const pnl = value - p.cost;
-                // Use live price from helper for display
-                const displayPrice = price;
-                // Event data for this market
+                const pnlPct = p.cost > 0 ? (pnl / p.cost) * 100 : 0;
                 const event = eventData[p.id];
                 const isLive = event?.live;
                 const isEnded = event?.ended;
 
+                // Get price history for sparkline
+                const sidePriceHistory = priceHistory[p.id]?.[p.side] || [];
+                const teamColor = getTeamColor(p.side);
+
+                // Calculate price range for display
+                const prices = sidePriceHistory.map(pt => pt.price);
+                const minPrice = prices.length > 0 ? Math.min(...prices) : price;
+                const maxPrice = prices.length > 0 ? Math.max(...prices) : price;
+
                 return (
-                  <div key={p.id} style={s.positionCard}>
-                    <div style={s.cardHeader}>
-                      <div style={s.cardTitle}>
-                        {p.market}
-                        {p.synced && <span style={s.syncedBadge}>api</span>}
-                        {isLive && <span style={s.liveBadge}>LIVE</span>}
-                        {isEnded && <span style={s.endedBadge}>FINAL</span>}
+                  <div key={p.id} style={s.posCard}>
+                    {/* Header: Side name + momentum + sell */}
+                    <div style={s.posHeader}>
+                      <div style={s.posHeaderLeft}>
+                        <span style={{ ...s.posSideName, color: teamColor }}>
+                          {p.side.toUpperCase()}
+                        </span>
+                        <MomentumIndicator priceHistory={sidePriceHistory} />
+                        {isLive && <span style={s.liveDot}>●</span>}
+                        {isEnded && <span style={s.finalBadge}>FINAL</span>}
                       </div>
                       <button
-                        style={s.cashOutBtn}
+                        style={s.sellBtn}
                         onClick={() => {
-                          const estimatedProceeds = value.toFixed(2);
                           setClosing(p);
-                          setCloseForm({ proceeds: estimatedProceeds, fee: '' });
+                          setCloseForm({ proceeds: value.toFixed(2), fee: '' });
                         }}
                       >
-                        CASH OUT
+                        SELL
                       </button>
                     </div>
-                    <div style={s.cardSubtitle}>
-                      {p.side} · {p.shares} shares @ {(p.entryPrice * 100).toFixed(1)}¢
+
+                    {/* Subtitle */}
+                    <div style={s.posSubtitle}>
+                      {p.market} · {p.shares} shares @ {(p.entryPrice * 100).toFixed(1)}¢
                     </div>
-                    {/* Live Score Display */}
-                    {event && event.score && (
-                      <div style={s.scoreDisplay}>
-                        <span style={s.scoreText}>{event.score}</span>
+
+                    {/* Hero: Current price */}
+                    <div style={s.priceHero}>
+                      <span style={s.priceValue}>{(price * 100).toFixed(1)}¢</span>
+                    </div>
+
+                    {/* Sparkline with range labels */}
+                    <div style={s.sparklineRow}>
+                      <span style={s.rangeLabel}>{(minPrice * 100).toFixed(0)}¢</span>
+                      <Sparkline
+                        data={sidePriceHistory}
+                        currentValue={price}
+                        entryValue={p.entryPrice}
+                        color={teamColor}
+                        width={180}
+                        height={28}
+                      />
+                      <span style={s.rangeLabel}>{(maxPrice * 100).toFixed(0)}¢</span>
+                    </div>
+
+                    {/* Score */}
+                    {event?.score && (
+                      <div style={s.scoreSection}>
+                        <div style={s.scoreValue}>{event.score}</div>
                         {event.period && (
-                          <>
-                            <span style={s.scoreDot}>·</span>
-                            <span style={s.periodText}>
-                              {event.period} {event.elapsed || ''}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    <div style={s.cardHeroSection}>
-                      <div style={{ ...s.cardHeroPnL, color: pnl >= 0 ? '#080' : '#a00' }}>
-                        {pnl >= 0 ? '+' : '-'}${fmt(Math.abs(pnl))}
-                      </div>
-                      <div style={{ ...s.cardHeroPct, color: pnl >= 0 ? '#080' : '#a00' }}>
-                        ({pct(pnl, p.cost)}%)
-                      </div>
-                    </div>
-                    {/* Expandable Charts */}
-                    {p.synced && (
-                      <div style={s.chartSection}>
-                        <button
-                          style={{
-                            ...s.chartToggleBtn,
-                            ...(expandedCharts[p.id] ? s.chartToggleBtnActive : {})
-                          }}
-                          onClick={() => toggleChart(p.id)}
-                        >
-                          {expandedCharts[p.id] ? '▼ Hide charts' : '▶ Show charts'}
-                        </button>
-                        {expandedCharts[p.id] && (
-                          <div style={s.chartsStack}>
-                            <div style={s.chartBlock}>
-                              <div style={s.chartLabel}>PRICE</div>
-                              <PriceChart slug={p.id} highlightSide={p.side} />
-                            </div>
-                            <div style={s.chartBlock}>
-                              <div style={s.chartLabel}>SCORE</div>
-                              <ScoreChart slug={p.id} />
-                            </div>
+                          <div style={s.scorePeriod}>
+                            {isEnded ? 'FINAL' : `${event.period}${event.elapsed ? ` · ${event.elapsed}` : ''}`}
                           </div>
                         )}
                       </div>
                     )}
-                    <div style={s.cardFooterStats}>
-                      <span>price: {(displayPrice * 100).toFixed(1)}¢</span>
-                      <span style={s.footerDot}>·</span>
-                      <span>value: ${fmt(value)}</span>
-                      <span style={s.footerDot}>·</span>
-                      <span>cost: ${fmt(p.cost)}</span>
+
+                    {/* P&L badge */}
+                    <div style={{
+                      ...s.pnlBadge,
+                      background: pnl >= 0 ? '#dcfce7' : '#fee2e2',
+                      color: pnl >= 0 ? '#166534' : '#991b1b',
+                    }}>
+                      {pnl >= 0 ? '+' : ''}{pnlPct.toFixed(1)}% · {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
                     </div>
+
+                    {/* Footer stats */}
+                    <div style={s.posFooter}>
+                      value ${value.toFixed(2)} · cost ${p.cost.toFixed(2)}
+                    </div>
+
+                    {/* Expandable charts */}
+                    {p.synced && (
+                      <button
+                        style={s.expandBtn}
+                        onClick={() => toggleChart(p.id)}
+                      >
+                        {expandedCharts[p.id] ? '− hide charts' : '+ show charts'}
+                      </button>
+                    )}
+
+                    {p.synced && expandedCharts[p.id] && (
+                      <div style={s.chartsStack}>
+                        <div style={s.chartBlock}>
+                          <div style={s.chartLabel}>PRICE</div>
+                          <PriceChart slug={p.id} highlightSide={p.side} />
+                        </div>
+                        {scoreHistory[p.id]?.length >= 2 && (
+                          <div style={s.chartBlock}>
+                            <div style={s.chartLabel}>SCORE</div>
+                            <ScoreChart slug={p.id} />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Manual price input for non-synced positions */}
                     {!p.synced && (
                       <div style={s.cardManualPrice}>
                         <span style={s.metricLabel}>current ¢:</span>
@@ -1412,7 +1545,7 @@ const ScalpingDashboard = ({ pin }) => {
         </section>
 
         <footer style={s.footer}>
-          v0.6 · data in localStorage · {wsConnected ? 'real-time via WebSocket' : 'tap sync to fetch from polymarket'}
+          v0.7 · data in localStorage · {wsConnected ? 'real-time via WebSocket' : 'tap sync to fetch from polymarket'}
         </footer>
       </div>
     </div>
@@ -1620,6 +1753,128 @@ const s = {
     flexDirection: 'column',
     gap: 12,
   },
+  // New position card styles (v0.7)
+  posCard: {
+    border: '1px solid #ccc',
+    background: '#fff',
+    padding: 16,
+    marginBottom: 12,
+  },
+  posHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  posHeaderLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
+  posSideName: {
+    fontSize: 20,
+    fontWeight: 700,
+    letterSpacing: 1,
+  },
+  liveDot: {
+    color: '#22c55e',
+    fontSize: 12,
+    animation: 'pulse 2s infinite',
+  },
+  finalBadge: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: '#666',
+    background: '#e5e5e5',
+    padding: '2px 6px',
+    letterSpacing: 0.5,
+  },
+  sellBtn: {
+    padding: '10px 24px',
+    border: '2px solid #222',
+    background: '#222',
+    color: '#fff',
+    fontFamily: 'inherit',
+    fontSize: 14,
+    fontWeight: 700,
+    letterSpacing: 1,
+    cursor: 'pointer',
+    minHeight: 44,
+  },
+  posSubtitle: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 12,
+  },
+  priceHero: {
+    textAlign: 'center',
+    padding: '4px 0 8px',
+  },
+  priceValue: {
+    fontSize: 52,
+    fontWeight: 600,
+    fontVariantNumeric: 'tabular-nums',
+    letterSpacing: -2,
+    color: '#111',
+  },
+  sparklineRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    padding: '4px 0 12px',
+  },
+  rangeLabel: {
+    fontSize: 11,
+    color: '#999',
+    fontVariantNumeric: 'tabular-nums',
+    minWidth: 32,
+    textAlign: 'center',
+  },
+  scoreSection: {
+    textAlign: 'center',
+    padding: '12px 0',
+    borderTop: '1px solid #eee',
+  },
+  scoreValue: {
+    fontSize: 28,
+    fontWeight: 700,
+    fontVariantNumeric: 'tabular-nums',
+    letterSpacing: 4,
+    color: '#222',
+  },
+  scorePeriod: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  pnlBadge: {
+    textAlign: 'center',
+    padding: '10px 16px',
+    fontSize: 15,
+    fontWeight: 600,
+    fontVariantNumeric: 'tabular-nums',
+    margin: '12px 0',
+  },
+  posFooter: {
+    fontSize: 11,
+    color: '#888',
+    textAlign: 'center',
+    paddingTop: 12,
+    borderTop: '1px solid #eee',
+  },
+  expandBtn: {
+    width: '100%',
+    padding: '10px',
+    marginTop: 12,
+    border: '1px solid #ddd',
+    background: '#fafaf8',
+    fontFamily: 'inherit',
+    fontSize: 12,
+    color: '#666',
+    cursor: 'pointer',
+  },
+  // Legacy position card styles (kept for compatibility)
   positionCard: {
     border: '1px solid #ccc',
     background: '#fff',
