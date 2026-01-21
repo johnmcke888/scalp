@@ -422,16 +422,12 @@ const ScalpingDashboard = ({ pin }) => {
     return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   };
 
-  // Toggle chart expansion (supports chart types: 'price' or 'score')
-  const toggleChart = (id, chartType = 'price') => {
-    setExpandedCharts(prev => {
-      // If clicking same type that's active, close it
-      if (prev[id] === chartType) {
-        return { ...prev, [id]: null };
-      }
-      // Otherwise, switch to the new type
-      return { ...prev, [id]: chartType };
-    });
+  // Toggle chart expansion (expands/collapses both charts together)
+  const toggleChart = (id) => {
+    setExpandedCharts(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
   };
 
   // Build chart data for a market
@@ -782,31 +778,26 @@ const ScalpingDashboard = ({ pin }) => {
                     {/* Expandable Charts */}
                     {p.synced && (
                       <div style={s.chartSection}>
-                        <div style={s.chartToggles}>
-                          <button
-                            style={{
-                              ...s.chartToggleBtn,
-                              ...(expandedCharts[p.id] === 'price' ? s.chartToggleBtnActive : {})
-                            }}
-                            onClick={() => toggleChart(p.id, 'price')}
-                          >
-                            Price
-                          </button>
-                          <button
-                            style={{
-                              ...s.chartToggleBtn,
-                              ...(expandedCharts[p.id] === 'score' ? s.chartToggleBtnActive : {})
-                            }}
-                            onClick={() => toggleChart(p.id, 'score')}
-                          >
-                            Score
-                          </button>
-                        </div>
-                        {expandedCharts[p.id] === 'price' && (
-                          <PriceChart slug={p.id} highlightSide={p.side} />
-                        )}
-                        {expandedCharts[p.id] === 'score' && (
-                          <ScoreChart slug={p.id} />
+                        <button
+                          style={{
+                            ...s.chartToggleBtn,
+                            ...(expandedCharts[p.id] ? s.chartToggleBtnActive : {})
+                          }}
+                          onClick={() => toggleChart(p.id)}
+                        >
+                          {expandedCharts[p.id] ? '▼ Hide charts' : '▶ Show charts'}
+                        </button>
+                        {expandedCharts[p.id] && (
+                          <div style={s.chartsStack}>
+                            <div style={s.chartBlock}>
+                              <div style={s.chartLabel}>PRICE</div>
+                              <PriceChart slug={p.id} highlightSide={p.side} />
+                            </div>
+                            <div style={s.chartBlock}>
+                              <div style={s.chartLabel}>SCORE</div>
+                              <ScoreChart slug={p.id} />
+                            </div>
+                          </div>
                         )}
                       </div>
                     )}
@@ -976,42 +967,37 @@ const ScalpingDashboard = ({ pin }) => {
                     {/* Expandable Charts */}
                     {hasAnyChart && (
                       <div style={s.chartSection}>
-                        <div style={s.chartToggles}>
-                          {hasPriceChart && (
-                            <button
-                              style={{
-                                ...s.chartToggleBtn,
-                                ...(expandedCharts[`history-${t.id}`] === 'price' ? s.chartToggleBtnActive : {})
-                              }}
-                              onClick={() => toggleChart(`history-${t.id}`, 'price')}
-                            >
-                              Price
-                            </button>
-                          )}
-                          {hasScoreChart && (
-                            <button
-                              style={{
-                                ...s.chartToggleBtn,
-                                ...(expandedCharts[`history-${t.id}`] === 'score' ? s.chartToggleBtnActive : {})
-                              }}
-                              onClick={() => toggleChart(`history-${t.id}`, 'score')}
-                            >
-                              Score
-                            </button>
-                          )}
-                        </div>
-                        {expandedCharts[`history-${t.id}`] === 'price' && (
-                          <PriceChart
-                            slug={t.id}
-                            highlightSide={t.side}
-                            closedAtTime={t.closedAtTime}
-                          />
-                        )}
-                        {expandedCharts[`history-${t.id}`] === 'score' && (
-                          <ScoreChart
-                            slug={t.id}
-                            closedAtTime={t.closedAtTime}
-                          />
+                        <button
+                          style={{
+                            ...s.chartToggleBtn,
+                            ...(expandedCharts[`history-${t.id}`] ? s.chartToggleBtnActive : {})
+                          }}
+                          onClick={() => toggleChart(`history-${t.id}`)}
+                        >
+                          {expandedCharts[`history-${t.id}`] ? '▼ Hide charts' : '▶ Show charts'}
+                        </button>
+                        {expandedCharts[`history-${t.id}`] && (
+                          <div style={s.chartsStack}>
+                            {hasPriceChart && (
+                              <div style={s.chartBlock}>
+                                <div style={s.chartLabel}>PRICE</div>
+                                <PriceChart
+                                  slug={t.id}
+                                  highlightSide={t.side}
+                                  closedAtTime={t.closedAtTime}
+                                />
+                              </div>
+                            )}
+                            {hasScoreChart && (
+                              <div style={s.chartBlock}>
+                                <div style={s.chartLabel}>SCORE</div>
+                                <ScoreChart
+                                  slug={t.id}
+                                  closedAtTime={t.closedAtTime}
+                                />
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}
@@ -1543,7 +1529,24 @@ const s = {
     color: '#fff',
   },
   chartContainer: {
-    marginTop: 8,
+    marginTop: 4,
+  },
+  chartsStack: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 16,
+    marginTop: 12,
+  },
+  chartBlock: {
+    // Container for label + chart
+  },
+  chartLabel: {
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: 1,
+    color: '#888',
+    marginBottom: 4,
+    textTransform: 'uppercase',
   },
   chartEmpty: {
     padding: 16,
