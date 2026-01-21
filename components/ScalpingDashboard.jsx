@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { usePolymarketWebSocket } from '@/hooks/usePolymarketWebSocket';
 
@@ -29,6 +29,7 @@ const ScalpingDashboard = ({ pin }) => {
   const [syncError, setSyncError] = useState(null);
   const [balance, setBalance] = useState(null);
   const [lastSynced, setLastSynced] = useState(null);
+  const [autoSyncCountdown, setAutoSyncCountdown] = useState(30);
 
   // Price history: { slug: { sideName: [{ time, price }, ...], ... }, ... }
   const [priceHistory, setPriceHistory] = useState(() => {
@@ -236,6 +237,47 @@ const ScalpingDashboard = ({ pin }) => {
       localStorage.setItem('scalper-watched-markets', JSON.stringify(watchedMarkets));
     }
   }, [watchedMarkets]);
+
+  // Ref to track syncing state for auto-sync interval (avoids stale closure)
+  const syncingRef = useRef(syncing);
+  useEffect(() => {
+    syncingRef.current = syncing;
+  }, [syncing]);
+
+  // Auto-sync positions every 30 seconds
+  useEffect(() => {
+    if (!pin) return;
+
+    const interval = setInterval(() => {
+      // Only auto-sync if we're not already syncing
+      if (!syncingRef.current) {
+        syncAll();
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [pin]);
+
+  // Countdown timer for auto-sync (updates every second)
+  useEffect(() => {
+    if (!pin) return;
+
+    const interval = setInterval(() => {
+      setAutoSyncCountdown(prev => {
+        if (prev <= 1) return 30;
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [pin]);
+
+  // Reset countdown when sync completes
+  useEffect(() => {
+    if (!syncing) {
+      setAutoSyncCountdown(30);
+    }
+  }, [syncing]);
 
   const fetchPrices = async (slugs) => {
     if (!slugs || slugs.length === 0) return {};
@@ -820,7 +862,9 @@ const ScalpingDashboard = ({ pin }) => {
                 ) : null}
               </div>
               {timeAgo && (
-                <span style={s.lastUpdated}>{timeAgo}</span>
+                <span style={s.lastUpdated}>
+                  {timeAgo} · next in {autoSyncCountdown}s
+                </span>
               )}
               <button
                 style={s.syncBtn}
