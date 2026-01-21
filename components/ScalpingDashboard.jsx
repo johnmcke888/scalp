@@ -248,12 +248,36 @@ const ScalpingDashboard = ({ pin }) => {
   useEffect(() => {
     if (!pin) return;
 
-    const interval = setInterval(() => {
-      // Only auto-sync if we're not already syncing
-      if (!syncingRef.current) {
-        syncAll();
+    const interval = setInterval(async () => {
+      console.log('Auto-sync triggered');
+
+      // Call the sync API directly instead of using handleSync
+      // to avoid stale closure issues
+      try {
+        const res = await fetch(`/api/positions?pin=${pin}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.positions) {
+            // Transform and update positions
+            const synced = Object.entries(data.positions).map(([slug, pos]) => ({
+              id: slug,
+              market: pos.marketMetadata?.title || slug,
+              side: pos.marketMetadata?.outcome || 'Unknown',
+              shares: Math.abs(parseFloat(pos.netPosition)),
+              cost: parseFloat(pos.cost?.value || 0),
+              currentPrice: parseFloat(pos.cashValue?.value || 0) / Math.abs(parseFloat(pos.netPosition)),
+              currentValue: parseFloat(pos.cashValue?.value || 0),
+              synced: true,
+              slug: slug,
+            }));
+            setPositions(synced);
+            console.log('Auto-sync complete:', synced.length, 'positions');
+          }
+        }
+      } catch (err) {
+        console.error('Auto-sync failed:', err);
       }
-    }, 30000); // 30 seconds
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [pin]);
