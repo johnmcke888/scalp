@@ -9,6 +9,7 @@ export async function GET(request) {
 
   try {
     const positions = await polymarketFetch('GET', '/v1/portfolio/positions');
+    console.log('Full positions response:', JSON.stringify(positions, null, 2));
     return NextResponse.json(positions);
   } catch (error) {
     console.error('Failed to fetch positions:', error);
