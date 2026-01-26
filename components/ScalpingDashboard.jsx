@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceL
 import { usePolymarketWebSocket } from '@/hooks/usePolymarketWebSocket';
 import { getTeamColor } from '@/lib/teamColors';
 import { transformActivities, groupTradesByEvent, calculatePerformanceMetrics, getClosingTrades } from '@/lib/activityTransformer';
+import { UnifiedHistory } from './UnifiedHistory';
 
 // ===== DARK MODE SPARKLINE - Always visible, optimized for performance =====
 const Sparkline = ({ data, currentValue, entryValue, color = '#39ff14', width = '100%', height = 48 }) => {
@@ -186,6 +187,18 @@ const ScalpingDashboard = ({ pin }) => {
   const [balance, setBalance] = useState(null);
   const [lastSynced, setLastSynced] = useState(null);
   const [autoSyncCountdown, setAutoSyncCountdown] = useState(30);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Responsive hook
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   const [showInputForm, setShowInputForm] = useState(false);
 
   const [priceHistory, setPriceHistory] = useState(() => {
@@ -1135,7 +1148,7 @@ const ScalpingDashboard = ({ pin }) => {
   // ========== RENDER ==========
   return (
     <div style={s.page}>
-      <div style={s.container}>
+      <div style={isMobile ? s.containerMobile : s.container}>
         {/* ===== HERO SECTION - Massive P&L ===== */}
         <header style={s.header}>
           <div style={s.headerTop}>
@@ -1189,9 +1202,13 @@ const ScalpingDashboard = ({ pin }) => {
           {syncError && <div style={s.syncError}>{syncError}</div>}
         </header>
 
-        {/* ===== PERFORMANCE SUMMARY ===== */}
-        {performanceMetrics && performanceMetrics.totalEvents > 0 && (
-          <section style={s.performanceSection}>
+        {/* ===== DESKTOP GRID LAYOUT ===== */}
+        <div style={isMobile ? s.desktopGridMobile : s.desktopGrid}>
+          {/* LEFT COLUMN - Stats & Performance */}
+          <div style={s.leftColumn}>
+            {/* ===== PERFORMANCE SUMMARY ===== */}
+            {performanceMetrics && performanceMetrics.totalEvents > 0 && (
+              <section style={s.performanceSection}>
             <div style={s.performanceHeader}>
               <span style={s.performanceTitle}>PERFORMANCE</span>
               <button
@@ -1222,7 +1239,7 @@ const ScalpingDashboard = ({ pin }) => {
                   </span>
                 </div>
                 <div style={s.performanceLabel}>
-                  {performanceMetrics.losers} {performanceMetrics.losers === 1 ? 'loss' : 'losses'} / {performanceMetrics.totalEvents} total
+                  {performanceMetrics.losers} {performanceMetrics.losers === 1 ? 'loss' : 'losses'} / {performanceMetrics.totalTrades} trades
                 </div>
               </div>
               <div style={s.performanceStat}>
@@ -1269,8 +1286,107 @@ const ScalpingDashboard = ({ pin }) => {
                 <div style={s.performanceSmallLabel}>Avg Loss</div>
               </div>
             </div>
-          </section>
-        )}
+              </section>
+            )}
+          </div>
+
+          {/* RIGHT COLUMN - Unified History & Positions */}
+          <div style={s.rightColumn}>
+            {/* ===== UNIFIED HISTORY ===== */}
+            <UnifiedHistory 
+              closingTrades={closingTrades}
+              resolutionTrades={resolutionTrades}
+              tradeHistory={tradeHistory}
+              onRefresh={() => fetchActivitiesData()}
+              refreshing={activitiesLoading}
+            />
+
+            {/* ===== OPEN POSITIONS - Compact Cards with Always-Visible Sparklines ===== */}
+            {positions.length > 0 && (
+              <section style={s.section}>
+                <div style={s.sectionHead}>
+                  <span>POSITIONS ({positions.length})</span>
+                </div>
+                <div style={s.posGrid}>
+                  {positions.map((p) => {
+                    const sidePriceHistory = priceHistory[p.id]?.[p.side] || [];
+                    const teamColor = getTeamColor(p.side);
+
+                    return (
+                      <div
+                        key={p.id}
+                        style={s.posCard}
+                        onClick={() => setExpandedPosition(expandedPosition === p.id ? null : p.id)}
+                      >
+                        <div style={s.posHeader}>
+                          <span style={{ ...s.posTeam, color: teamColor }}>{p.side.toUpperCase()}</span>
+                          <span style={s.posShares}>
+                            {p.shares.toFixed(0)}sh @ {(p.price * 100).toFixed(1)}¢
+                          </span>
+                        </div>
+                        
+                        <div style={s.posPrice}>
+                          <span style={s.posCurrentPrice}>
+                            {(p.currentPrice * 100).toFixed(1)}¢
+                          </span>
+                          <PriceChangeIndicator change={p.priceDelta} />
+                        </div>
+                        
+                        <div style={s.posPnl}>
+                          <span style={{
+                            color: p.unrealizedPnl >= 0 ? '#39ff14' : '#ff3b30',
+                            fontWeight: 600,
+                          }}>
+                            {p.unrealizedPnl >= 0 ? '+' : ''}${p.unrealizedPnl.toFixed(2)}
+                          </span>
+                        </div>
+
+                        {sidePriceHistory.length > 1 && (
+                          <div style={s.posSparkline}>
+                            <Sparkline
+                              data={sidePriceHistory}
+                              currentValue={p.currentPrice}
+                              entryValue={p.price}
+                              color={teamColor}
+                              height={24}
+                            />
+                          </div>
+                        )}
+
+                        <TargetIndicators
+                          current={p.currentPrice}
+                          entry={p.price}
+                          targets={[
+                            { price: p.price * 1.05, label: '+5%' },
+                            { price: p.price * 1.10, label: '+10%' },
+                            { price: p.price * 1.20, label: '+20%' }
+                          ]}
+                        />
+
+                        {expandedPosition === p.id && (
+                          <div style={s.posExpanded}>
+                            <div style={s.posChart}>
+                              {renderChart(p.marketSlug, p.side)}
+                            </div>
+                            <button
+                              style={s.sellBtn}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setClosing(p);
+                              }}
+                            >
+                              💰 Cash Out
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
 
         {/* ===== RECENT TRADES - Visual P&L bars ===== */}
         {closingTrades.length > 0 && (
@@ -1367,43 +1483,45 @@ const ScalpingDashboard = ({ pin }) => {
                     hour: 'numeric',
                     minute: '2-digit',
                     hour12: true,
-                  });
+                  }).replace(/(\d+:\d+) ([AP]M)/, '$1$2').toLowerCase().replace('am', 'a').replace('pm', 'p');
 
                   return (
-                    <div key={resolution.id} style={s.heldRow}>
-                      <div style={s.heldInfo}>
-                        <span style={{ ...s.heldTitle, color: resolution.teamColor || '#9ca3af' }}>
+                    <div key={resolution.id} style={s.compactResolutionCard}>
+                      {/* Line 1: Match info + League + Result + Time */}
+                      <div style={s.resolutionTopLine}>
+                        <span style={s.resolutionTitle}>
                           {resolution.title || resolution.marketSlug}
                         </span>
-                        <span style={{
-                          ...s.heldBadge,
-                          background: resolution.won ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                          color: resolution.won ? '#22c55e' : '#ef4444',
-                        }}>
-                          {resolution.won ? 'WON' : 'LOST'}
-                        </span>
-                        {resolution.league && (
-                          <span style={s.heldLeague}>{resolution.league}</span>
-                        )}
-                      </div>
-                      <div style={s.heldDetails}>
-                        <span style={s.heldShareInfo}>
-                          Bet on: {resolution.team}
-                        </span>
-                        <span style={s.heldShareInfo}>
-                          {resolution.shares.toFixed(0)} shares @ {(avgPrice * 100).toFixed(0)}¢ avg
-                        </span>
-                        <span style={s.heldCost}>
-                          Cost: ${resolution.costBasis?.toFixed(2)} → Payout: ${resolution.payout?.toFixed(2)} 
-                          <span style={{ 
-                            color: resolution.realizedPnl >= 0 ? '#22c55e' : '#ef4444',
-                            marginLeft: 8,
+                        <div style={s.resolutionMeta}>
+                          {resolution.league && (
+                            <span style={s.resolutionLeague}>{resolution.league}</span>
+                          )}
+                          <span style={{
+                            ...s.resolutionResult,
+                            color: resolution.won ? '#22c55e' : '#ef4444',
                           }}>
-                            ({resolution.realizedPnl >= 0 ? '+' : ''}${resolution.realizedPnl?.toFixed(2)})
+                            {resolution.won ? 'WON' : 'LOST'}
                           </span>
+                          <span style={s.resolutionTime}>
+                            {timeStr}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Line 2: Team + Shares @ Price → Cost → Payout + P&L */}
+                      <div style={s.resolutionBottomLine}>
+                        <span style={{ color: resolution.teamColor || '#9ca3af', fontWeight: 600 }}>
+                          {resolution.team}
                         </span>
-                        <span style={{ fontSize: 10, color: '#6b7280' }}>
-                          {timeStr}
+                        <span style={s.resolutionDetails}>
+                          {resolution.shares.toFixed(0)}sh @ {(avgPrice * 100).toFixed(0)}¢ → ${resolution.costBasis?.toFixed(2)} → ${resolution.payout?.toFixed(2)}
+                        </span>
+                        <span style={{ 
+                          color: resolution.realizedPnl >= 0 ? '#22c55e' : '#ef4444',
+                          fontWeight: 600,
+                          fontSize: 13,
+                        }}>
+                          {resolution.realizedPnl >= 0 ? '+' : ''}${resolution.realizedPnl?.toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -1413,151 +1531,6 @@ const ScalpingDashboard = ({ pin }) => {
           </section>
         )}
 
-        {/* ===== OPEN POSITIONS - Compact Cards with Always-Visible Sparklines ===== */}
-        <section style={s.section}>
-          <div style={s.sectionHead}>
-            <span>POSITIONS</span>
-            <span style={s.posCount}>{positions.length}</span>
-          </div>
-
-          {positions.length === 0 ? (
-            <div style={s.empty}>No open positions</div>
-          ) : (
-            <div style={s.positionGrid}>
-              {positions.map(p => {
-                const { value, price } = getLivePositionData(p);
-                const pnl = value - p.cost;
-                const pnlPct = p.cost > 0 ? (pnl / p.cost) * 100 : 0;
-                const event = eventData[p.id];
-                const isLive = event?.live;
-                const isEnded = event?.ended;
-                const sidePriceHistory = priceHistory[p.id]?.[p.side] || [];
-                const teamColor = getTeamColor(p.side);
-
-                return (
-                  <div
-                    key={p.id}
-                    style={s.posCard}
-                    onClick={() => {
-                      setClosing(p);
-                      setCloseForm({ proceeds: value.toFixed(2), fee: '' });
-                    }}
-                  >
-                    {/* Top Row: Name + Live Price */}
-                    <div style={s.posTopRow}>
-                      <div style={s.posLeft}>
-                        <span style={{ ...s.posSide, color: teamColor }}>{p.side.toUpperCase()}</span>
-                        {isLive && <span style={s.liveDot}>●</span>}
-                        {isEnded && <span style={s.endedTag}>FINAL</span>}
-                        <MomentumIndicator priceHistory={sidePriceHistory} />
-                      </div>
-                      <div
-                        style={s.priceBox}
-                        className={priceFlash[p.id] === 'up' ? 'price-flash-up' : priceFlash[p.id] === 'down' ? 'price-flash-down' : ''}
-                      >
-                        <span style={s.livePrice}>{(price * 100).toFixed(1)}¢</span>
-                      </div>
-                    </div>
-
-                    {/* Subtitle */}
-                    <div style={s.posSubtitle}>
-                      {p.shares} shares @ {(p.entryPrice * 100).toFixed(1)}¢
-                    </div>
-
-                    {/* ALWAYS VISIBLE SPARKLINE */}
-                    <div style={s.sparklineWrapper}>
-                      <Sparkline
-                        data={sidePriceHistory}
-                        currentValue={price}
-                        entryValue={p.entryPrice}
-                        color={pnl >= 0 ? '#39ff14' : '#ff3b30'}
-                        height={48}
-                      />
-                    </div>
-
-                    {/* Score (if available) */}
-                    {event?.score && (
-                      <div style={s.scoreRow}>
-                        <span style={s.scoreText}>{event.score}</span>
-                        {event.period && (
-                          <span style={s.periodText}>
-                            {isEnded ? 'FINAL' : `${event.period}${event.elapsed ? ` · ${event.elapsed}` : ''}`}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* P&L Badge */}
-                    <div style={{
-                      ...s.pnlBadge,
-                      background: pnl >= 0 ? 'rgba(57, 255, 20, 0.15)' : 'rgba(255, 59, 48, 0.15)',
-                      color: pnl >= 0 ? '#39ff14' : '#ff3b30',
-                      borderColor: pnl >= 0 ? 'rgba(57, 255, 20, 0.3)' : 'rgba(255, 59, 48, 0.3)',
-                    }}>
-                      {pnl >= 0 ? '+' : ''}{pnlPct.toFixed(1)}% · {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
-                    </div>
-
-                    {/* Exit targets */}
-                    <ExitTargets entryPrice={p.entryPrice} shares={p.shares} cost={p.cost} />
-
-                    {/* Footer */}
-                    <div style={s.posFooter}>
-                      <span>value ${value.toFixed(2)}</span>
-                      <span style={s.footerDot}>·</span>
-                      <span>cost ${p.cost.toFixed(2)}</span>
-                    </div>
-
-                    {/* Expanded charts */}
-                    {p.synced && expandedCharts[p.id] && (
-                      <div style={s.chartsStack} onClick={e => e.stopPropagation()}>
-                        <div style={s.chartBlock}>
-                          <div style={s.chartLabel}>PRICE CHART</div>
-                          <PriceChart slug={p.id} highlightSide={p.side} />
-                        </div>
-                        {scoreHistory[p.id]?.length >= 2 && (
-                          <div style={s.chartBlock}>
-                            <div style={s.chartLabel}>SCORE</div>
-                            <ScoreChart slug={p.id} />
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {p.synced && (
-                      <button
-                        style={s.expandBtn}
-                        onClick={(e) => { e.stopPropagation(); toggleChart(p.id); }}
-                      >
-                        {expandedCharts[p.id] ? '− hide details' : '+ show details'}
-                      </button>
-                    )}
-
-                    {/* Manual price input for non-synced */}
-                    {!p.synced && (
-                      <div style={s.manualInput} onClick={e => e.stopPropagation()}>
-                        <span style={s.manualLabel}>Current ¢:</span>
-                        <input
-                          style={s.priceInput}
-                          type="number"
-                          step="0.1"
-                          value={priceEdits[p.id] !== undefined ? priceEdits[p.id] : (p.currentPrice * 100).toFixed(1)}
-                          onChange={e => setPriceEdits({ ...priceEdits, [p.id]: e.target.value })}
-                          onBlur={e => {
-                            const cents = parseFloat(e.target.value);
-                            if (!isNaN(cents)) {
-                              updateCurrentPrice(p.id, cents / 100);
-                            }
-                            setPriceEdits({ ...priceEdits, [p.id]: undefined });
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
 
         {/* ===== RECENTLY CLOSED ===== */}
         {watchedMarkets.length > 0 && (
@@ -1973,9 +1946,34 @@ const s = {
     paddingBottom: 100,
   },
   container: {
-    maxWidth: 500,
+    maxWidth: '1200px',
     margin: '0 auto',
     padding: '0 16px',
+  },
+  containerMobile: {
+    maxWidth: '500px',
+    margin: '0 auto',
+    padding: '0 16px',
+  },
+  
+  // Desktop Grid Layout
+  desktopGrid: {
+    display: 'grid',
+    gridTemplateColumns: '320px 1fr',
+    gap: '24px',
+  },
+  desktopGridMobile: {
+    display: 'block',
+  },
+  leftColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+  },
+  rightColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
   },
 
   // Header
@@ -2331,6 +2329,109 @@ const s = {
     display: 'flex',
     flexDirection: 'column',
     gap: 12,
+  },
+  posGrid: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+  },
+  
+  // Position Card Styles for Right Column
+  posHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  posTeam: {
+    fontSize: 13,
+    fontWeight: 600,
+  },
+  posShares: {
+    fontSize: 11,
+    color: '#9ca3af',
+  },
+  posPrice: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  posCurrentPrice: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: '#f9fafb',
+  },
+  posPnl: {
+    marginBottom: 8,
+  },
+  posSparkline: {
+    marginBottom: 8,
+  },
+  
+  // Compact Resolution Card Styles
+  compactResolutionCard: {
+    background: '#1f2937',
+    border: '1px solid #374151',
+    borderRadius: 6,
+    padding: 8,
+    marginBottom: 8,
+  },
+  resolutionTopLine: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  resolutionTitle: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: '#f9fafb',
+    flex: '1 1 auto',
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  resolutionMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 0,
+  },
+  resolutionLeague: {
+    fontSize: 9,
+    fontWeight: 600,
+    color: '#6b7280',
+    background: '#374151',
+    padding: '2px 4px',
+    borderRadius: 2,
+    letterSpacing: '0.5px',
+  },
+  resolutionResult: {
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: '0.5px',
+  },
+  resolutionTime: {
+    fontSize: 10,
+    color: '#9ca3af',
+    minWidth: 65,
+    textAlign: 'right',
+  },
+  resolutionBottomLine: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    fontSize: 11,
+  },
+  resolutionDetails: {
+    color: '#d1d5db',
+    fontFamily: 'monospace',
+    fontSize: 10,
+    flex: '1 1 auto',
+    textAlign: 'center',
+    margin: '0 8px',
   },
 
   // Position Card
