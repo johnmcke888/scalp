@@ -11,9 +11,13 @@ export async function GET(request) {
   const url = new URL(request.url);
   const limit = url.searchParams.get('limit') || '100';
   const offset = url.searchParams.get('offset') || '0';
+  const type = url.searchParams.get('type'); // e.g., 'ACTIVITY_TYPE_POSITION_RESOLUTION'
 
   // Build query string for the API
-  const queryString = `?limit=${limit}&offset=${offset}`;
+  let queryString = `?limit=${limit}&offset=${offset}`;
+  if (type) {
+    queryString += `&type=${encodeURIComponent(type)}`;
+  }
 
   // List of possible endpoint variations to try
   const endpoints = [
