@@ -97,6 +97,11 @@ export async function GET(request) {
         console.log('Activities data structure:', JSON.stringify(data, null, 2).slice(0, 2000));
       }
 
+      // Rate limiting: wait 500ms between requests to avoid overwhelming the API
+      if (!eof && pageCount < MAX_PAGES) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
     } catch (err) {
       console.error(`Failed to fetch page ${pageCount + 1}:`, err.message);
       // If we have some data, return it; otherwise fail
