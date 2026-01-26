@@ -128,6 +128,24 @@ const MomentumIndicator = ({ priceHistory }) => {
   );
 };
 
+// ===== PRICE CHANGE INDICATOR - Shows simple price change with color =====
+const PriceChangeIndicator = ({ change = 0 }) => {
+  if (Math.abs(change) < 0.1) return null; // Don't show very small changes
+
+  const isUp = change > 0;
+
+  return (
+    <span style={{
+      color: isUp ? '#39ff14' : '#ff3b30',
+      fontSize: 11,
+      fontWeight: 600,
+      marginLeft: 6,
+    }}>
+      {isUp ? '↗' : '↘'} {isUp ? '+' : ''}{change.toFixed(1)}%
+    </span>
+  );
+};
+
 // ===== EXIT TARGETS - Dark mode styled =====
 const ExitTargets = ({ entryPrice, shares, cost }) => {
   const targets = [5, 10, 20].map(pct => {
