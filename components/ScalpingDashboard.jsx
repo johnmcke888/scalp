@@ -323,6 +323,7 @@ const ScalpingDashboard = ({ pin }) => {
   const [prevPrices, setPrevPrices] = useState({});
   const [priceFlash, setPriceFlash] = useState({});
   const [expandedCharts, setExpandedCharts] = useState({});
+  const [expandedPosition, setExpandedPosition] = useState(null);
 
   // Calculate slugs for WebSocket subscription
   const allSlugs = useMemo(() => {
