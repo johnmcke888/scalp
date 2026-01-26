@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { usePolymarketWebSocket } from '@/hooks/usePolymarketWebSocket';
 import { getTeamColor } from '@/lib/teamColors';
+import { transformActivities, groupTradesByEvent } from '@/lib/activityTransformer';
 
 // ===== DARK MODE SPARKLINE - Always visible, optimized for performance =====
 const Sparkline = ({ data, currentValue, entryValue, color = '#39ff14', width = '100%', height = 48 }) => {
@@ -211,6 +212,18 @@ const ScalpingDashboard = ({ pin }) => {
     } catch { return []; }
   });
 
+  // Trade History State
+  const [tradeHistory, setTradeHistory] = useState(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const saved = localStorage.getItem('scalper-trade-history');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+  const [activitiesError, setActivitiesError] = useState(null);
+  const [expandedEvents, setExpandedEvents] = useState({});
+
   const [eventData, setEventData] = useState({});
   const [prevPrices, setPrevPrices] = useState({});
   const [priceFlash, setPriceFlash] = useState({});
@@ -389,6 +402,13 @@ const ScalpingDashboard = ({ pin }) => {
       localStorage.setItem('scalper-watched-markets', JSON.stringify(watchedMarkets));
     }
   }, [watchedMarkets]);
+
+  // Persist trade history to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && Object.keys(tradeHistory).length > 0) {
+      localStorage.setItem('scalper-trade-history', JSON.stringify(tradeHistory));
+    }
+  }, [tradeHistory]);
 
   const syncingRef = useRef(syncing);
   useEffect(() => {
@@ -630,6 +650,38 @@ const ScalpingDashboard = ({ pin }) => {
       // Ignore balance errors
     }
   };
+
+  // Fetch activities and group by event
+  const fetchActivities = async () => {
+    setActivitiesLoading(true);
+    setActivitiesError(null);
+
+    try {
+      const res = await fetch(`/api/activities?pin=${encodeURIComponent(pin)}&limit=200`);
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || `API error: ${res.status}`);
+      }
+
+      const data = await res.json();
+      const trades = transformActivities(data);
+      const grouped = groupTradesByEvent(trades);
+
+      setTradeHistory(grouped);
+    } catch (err) {
+      console.error('Failed to fetch activities:', err);
+      setActivitiesError(err.message);
+    } finally {
+      setActivitiesLoading(false);
+    }
+  };
+
+  // Fetch activities on initial load
+  useEffect(() => {
+    if (pin) {
+      fetchActivities();
+    }
+  }, [pin]);
 
   const syncAll = async () => {
     await Promise.all([syncPositions(), syncBalance()]);
@@ -1374,6 +1426,124 @@ const ScalpingDashboard = ({ pin }) => {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </section>
+
+        {/* ===== TRADE HISTORY ===== */}
+        <section style={s.tradeHistorySection}>
+          <div style={s.tradeHistoryHeader}>
+            <span style={s.tradeHistoryTitle}>
+              TRADE HISTORY ({Object.keys(tradeHistory).length} events)
+            </span>
+            <button
+              style={s.refreshBtn}
+              onClick={fetchActivities}
+              disabled={activitiesLoading}
+            >
+              {activitiesLoading ? '...' : '↻ Refresh'}
+            </button>
+          </div>
+
+          {activitiesError && (
+            <div style={s.syncError}>{activitiesError}</div>
+          )}
+
+          {Object.keys(tradeHistory).length === 0 && !activitiesLoading ? (
+            <div style={s.empty}>No trade history</div>
+          ) : (
+            <div style={s.positionGrid}>
+              {Object.values(tradeHistory)
+                .sort((a, b) => b.lastTradeTime - a.lastTradeTime)
+                .map(event => {
+                  const isExpanded = expandedEvents[event.slug];
+                  // Use realizedPnl if available, otherwise use netPnl
+                  const displayPnl = event.realizedPnl !== 0 ? event.realizedPnl : event.netPnl;
+
+                  return (
+                    <div key={event.slug} style={s.eventCard}>
+                      <div style={s.eventHeader}>
+                        <div>
+                          <div style={s.eventTitle}>{event.title || event.slug}</div>
+                        </div>
+                        <div style={s.eventMeta}>
+                          {event.league && (
+                            <span style={s.leagueBadge}>{event.league}</span>
+                          )}
+                          <span style={{
+                            ...s.statusBadge,
+                            background: event.isComplete ? 'rgba(57, 255, 20, 0.15)' : 'rgba(251, 191, 36, 0.15)',
+                            color: event.isComplete ? '#39ff14' : '#fbbf24',
+                          }}>
+                            {event.isComplete ? 'CLOSED' : 'OPEN'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{
+                        ...s.eventPnl,
+                        color: displayPnl >= 0 ? '#39ff14' : '#ff3b30',
+                      }}>
+                        {displayPnl >= 0 ? '+' : ''}${displayPnl.toFixed(2)}
+                      </div>
+
+                      <div style={s.eventStats}>
+                        {event.trades.length} trades · Avg buy: {(event.avgBuyPrice * 100).toFixed(1)}¢ → Avg sell: {(event.avgSellPrice * 100).toFixed(1)}¢
+                      </div>
+
+                      <button
+                        style={s.expandBtn}
+                        onClick={() => setExpandedEvents(prev => ({
+                          ...prev,
+                          [event.slug]: !prev[event.slug]
+                        }))}
+                      >
+                        {isExpanded ? '▲ Hide trades' : '▼ Show trades'}
+                      </button>
+
+                      {isExpanded && (
+                        <div style={s.tradesList}>
+                          {event.trades.map((trade, idx) => {
+                            const isBuy = trade.side === 'BUY';
+                            const tradeTime = new Date(trade.timestamp);
+                            const timeStr = tradeTime.toLocaleTimeString([], {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            });
+
+                            return (
+                              <div key={trade.id || idx} style={s.tradeRow}>
+                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                  <span style={{
+                                    ...s.tradeSideBadge,
+                                    background: isBuy ? 'rgba(59, 130, 246, 0.15)' : 'rgba(168, 85, 247, 0.15)',
+                                    color: isBuy ? '#3b82f6' : '#a855f7',
+                                  }}>
+                                    {trade.side}
+                                  </span>
+                                  <span style={{ fontFamily: '"SF Mono", monospace' }}>
+                                    {trade.shares.toFixed(0)} @ {(trade.price * 100).toFixed(1)}¢
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span style={{ color: '#6b7280' }}>{timeStr}</span>
+                                  {trade.realizedPnl !== null && (
+                                    <span style={{
+                                      ...s.tradePnl,
+                                      color: trade.realizedPnl >= 0 ? '#39ff14' : '#ff3b30',
+                                    }}>
+                                      ({trade.realizedPnl >= 0 ? '+' : ''}${trade.realizedPnl.toFixed(2)})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           )}
         </section>
@@ -2165,6 +2335,108 @@ const s = {
     fontSize: 18,
     cursor: 'pointer',
     borderRadius: 8,
+  },
+
+  // Trade History styles
+  tradeHistorySection: {
+    marginTop: 32,
+    marginBottom: 32,
+  },
+  tradeHistoryHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 8,
+    borderBottom: '1px solid #222228',
+  },
+  tradeHistoryTitle: {
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: '0.1em',
+    color: '#6b7280',
+  },
+  refreshBtn: {
+    padding: '6px 12px',
+    border: '1px solid #333340',
+    background: 'transparent',
+    color: '#9ca3af',
+    fontFamily: '"SF Mono", monospace',
+    fontSize: 11,
+    cursor: 'pointer',
+    borderRadius: 6,
+  },
+  eventCard: {
+    background: '#0a0b0d',
+    border: '1px solid #1a1a1f',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  eventHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  eventTitle: {
+    fontSize: 14,
+    fontWeight: 500,
+    color: '#ffffff',
+  },
+  eventMeta: {
+    display: 'flex',
+    gap: 8,
+    alignItems: 'center',
+  },
+  leagueBadge: {
+    fontSize: 10,
+    fontWeight: 600,
+    padding: '2px 6px',
+    borderRadius: 4,
+    background: '#1a1a1f',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+  },
+  statusBadge: {
+    fontSize: 10,
+    fontWeight: 600,
+    padding: '2px 6px',
+    borderRadius: 4,
+  },
+  eventPnl: {
+    fontSize: 18,
+    fontWeight: 600,
+    fontFamily: '"SF Mono", monospace',
+  },
+  eventStats: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  tradesList: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTop: '1px solid #1a1a1f',
+  },
+  tradeRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '6px 0',
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  tradeSideBadge: {
+    fontSize: 10,
+    fontWeight: 600,
+    padding: '2px 6px',
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  tradePnl: {
+    fontSize: 11,
+    fontFamily: '"SF Mono", monospace',
   },
 };
 
