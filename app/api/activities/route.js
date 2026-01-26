@@ -60,17 +60,17 @@ export async function GET(request) {
   while (!eof && pageCount < MAX_PAGES) {
     // Build URL with cursor-based pagination (NOT limit/offset)
     let endpoint = successEndpoint;
-    const params = new URLSearchParams();
+    const queryParams = [];
     
     if (cursor) {
-      params.set('cursor', cursor);
+      queryParams.push(`cursor=${cursor}`);  // Try without encoding
     }
     if (type) {
-      params.set('type', type);
+      queryParams.push(`type=${encodeURIComponent(type)}`);
     }
     
-    if (params.toString()) {
-      endpoint += '?' + params.toString();
+    if (queryParams.length > 0) {
+      endpoint += '?' + queryParams.join('&');
     }
 
     try {
