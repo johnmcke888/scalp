@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { usePolymarketWebSocket } from '@/hooks/usePolymarketWebSocket';
 import { getTeamColor } from '@/lib/teamColors';
-import { transformActivities, groupTradesByEvent } from '@/lib/activityTransformer';
+import { transformActivities, groupTradesByEvent, calculatePerformanceMetrics, getClosingTrades } from '@/lib/activityTransformer';
 
 // ===== DARK MODE SPARKLINE - Always visible, optimized for performance =====
 const Sparkline = ({ data, currentValue, entryValue, color = '#39ff14', width = '100%', height = 48 }) => {
@@ -219,6 +219,20 @@ const ScalpingDashboard = ({ pin }) => {
       const saved = localStorage.getItem('scalper-trade-history');
       return saved ? JSON.parse(saved) : {};
     } catch { return {}; }
+  });
+  const [performanceMetrics, setPerformanceMetrics] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const saved = localStorage.getItem('scalper-performance-metrics');
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
+  const [closingTrades, setClosingTrades] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = localStorage.getItem('scalper-closing-trades');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
   });
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [activitiesError, setActivitiesError] = useState(null);
@@ -657,7 +671,7 @@ const ScalpingDashboard = ({ pin }) => {
     setActivitiesError(null);
 
     try {
-      const res = await fetch(`/api/activities?pin=${encodeURIComponent(pin)}&limit=200`);
+      const res = await fetch(`/api/activities?pin=${encodeURIComponent(pin)}&limit=500`);
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || `API error: ${res.status}`);
@@ -666,8 +680,16 @@ const ScalpingDashboard = ({ pin }) => {
       const data = await res.json();
       const trades = transformActivities(data);
       const grouped = groupTradesByEvent(trades);
+      const metrics = calculatePerformanceMetrics(grouped);
+      const closingTradesList = getClosingTrades(trades);
 
       setTradeHistory(grouped);
+      setPerformanceMetrics(metrics);
+      setClosingTrades(closingTradesList);
+
+      // Persist to localStorage
+      localStorage.setItem('scalper-performance-metrics', JSON.stringify(metrics));
+      localStorage.setItem('scalper-closing-trades', JSON.stringify(closingTradesList));
     } catch (err) {
       console.error('Failed to fetch activities:', err);
       setActivitiesError(err.message);
@@ -1107,6 +1129,158 @@ const ScalpingDashboard = ({ pin }) => {
 
           {syncError && <div style={s.syncError}>{syncError}</div>}
         </header>
+
+        {/* ===== PERFORMANCE SUMMARY ===== */}
+        {performanceMetrics && performanceMetrics.totalEvents > 0 && (
+          <section style={s.performanceSection}>
+            <div style={s.performanceHeader}>
+              <span style={s.performanceTitle}>PERFORMANCE</span>
+              <button
+                style={s.refreshBtn}
+                onClick={fetchActivities}
+                disabled={activitiesLoading}
+              >
+                {activitiesLoading ? '...' : '↻ Refresh'}
+              </button>
+            </div>
+
+            {/* Main stats row */}
+            <div style={s.performanceGrid}>
+              <div style={s.performanceStat}>
+                <div style={{
+                  ...s.performanceValue,
+                  color: performanceMetrics.totalRealizedPnl >= 0 ? '#39ff14' : '#ff3b30',
+                }}>
+                  {performanceMetrics.totalRealizedPnl >= 0 ? '+' : ''}${performanceMetrics.totalRealizedPnl.toFixed(2)}
+                </div>
+                <div style={s.performanceLabel}>Total P&L</div>
+              </div>
+              <div style={s.performanceStat}>
+                <div style={s.performanceValue}>
+                  {performanceMetrics.winners}/{performanceMetrics.totalEvents}
+                  <span style={{ fontSize: 12, color: '#6b7280', marginLeft: 4 }}>wins</span>
+                </div>
+                <div style={s.performanceLabel}>
+                  ({performanceMetrics.losers} {performanceMetrics.losers === 1 ? 'loss' : 'losses'})
+                </div>
+              </div>
+              <div style={s.performanceStat}>
+                <div style={{
+                  ...s.performanceValue,
+                  color: performanceMetrics.winRate >= 50 ? '#39ff14' : '#ff3b30',
+                }}>
+                  {performanceMetrics.winRate.toFixed(1)}%
+                </div>
+                <div style={s.performanceLabel}>
+                  ROI: {performanceMetrics.roi >= 0 ? '+' : ''}{performanceMetrics.roi.toFixed(1)}%
+                </div>
+              </div>
+            </div>
+
+            {/* Secondary stats row */}
+            <div style={s.performanceSubgrid}>
+              <div style={s.performanceSmallStat}>
+                <div style={{ ...s.performanceSmallValue, color: '#39ff14' }}>
+                  +${performanceMetrics.biggestWin.toFixed(2)}
+                </div>
+                <div style={s.performanceSmallLabel}>
+                  {performanceMetrics.biggestWinEvent?.title?.split(' vs')[0] || 'Best'}
+                </div>
+              </div>
+              <div style={s.performanceSmallStat}>
+                <div style={{ ...s.performanceSmallValue, color: '#ff3b30' }}>
+                  ${performanceMetrics.biggestLoss.toFixed(2)}
+                </div>
+                <div style={s.performanceSmallLabel}>
+                  {performanceMetrics.biggestLossEvent?.title?.split(' vs')[0] || 'Worst'}
+                </div>
+              </div>
+              <div style={s.performanceSmallStat}>
+                <div style={{ ...s.performanceSmallValue, color: '#39ff14' }}>
+                  +${performanceMetrics.avgWin.toFixed(2)}
+                </div>
+                <div style={s.performanceSmallLabel}>Avg Win</div>
+              </div>
+              <div style={s.performanceSmallStat}>
+                <div style={{ ...s.performanceSmallValue, color: '#ff3b30' }}>
+                  ${performanceMetrics.avgLoss.toFixed(2)}
+                </div>
+                <div style={s.performanceSmallLabel}>Avg Loss</div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ===== RECENT TRADES - Visual P&L bars ===== */}
+        {closingTrades.length > 0 && (
+          <section style={s.tradeListSection}>
+            <div style={s.tradeListHeader}>
+              <span style={s.tradeListTitle}>RECENT TRADES</span>
+              <span style={{ fontSize: 10, color: '#4b5563' }}>{closingTrades.length} closes</span>
+            </div>
+            <div style={s.tradeListContainer}>
+              {closingTrades.slice(0, 20).map((trade, idx) => {
+                const isWin = trade.realizedPnl >= 0;
+                // Calculate bar width using log scale to handle outliers
+                const maxPnl = Math.max(...closingTrades.slice(0, 20).map(t => Math.abs(t.realizedPnl)));
+                const pnlAbs = Math.abs(trade.realizedPnl);
+                const barWidth = maxPnl > 0
+                  ? Math.max(8, Math.min(120, (Math.log(pnlAbs + 1) / Math.log(maxPnl + 1)) * 120))
+                  : 8;
+
+                const tradeTime = new Date(trade.timestamp);
+                const timeStr = tradeTime.toLocaleTimeString([], {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                });
+
+                // Get team color
+                const teamColor = trade.teamColor || (isWin ? '#39ff14' : '#ff3b30');
+
+                return (
+                  <div key={trade.id || idx} style={s.tradeItem}>
+                    {/* P&L Bar */}
+                    <div
+                      style={{
+                        ...s.tradeBar,
+                        width: barWidth,
+                        background: isWin
+                          ? `linear-gradient(90deg, ${teamColor}, ${teamColor}88)`
+                          : `linear-gradient(90deg, #ff3b30, #ff3b3088)`,
+                      }}
+                    />
+
+                    {/* P&L Value */}
+                    <div style={{
+                      ...s.tradePnlValue,
+                      color: isWin ? '#39ff14' : '#ff3b30',
+                    }}>
+                      {isWin ? '+' : ''}${trade.realizedPnl.toFixed(2)}
+                    </div>
+
+                    {/* Trade Details */}
+                    <div style={s.tradeEventInfo}>
+                      <div style={s.tradeEventName}>
+                        <span style={{ color: teamColor }}>{trade.team}</span>
+                      </div>
+                      <div style={s.tradePriceRange}>
+                        {trade.originalPrice !== null
+                          ? `${(trade.originalPrice * 100).toFixed(0)}¢→${(trade.price * 100).toFixed(0)}¢`
+                          : `@${(trade.price * 100).toFixed(0)}¢`
+                        }
+                        {' · '}
+                        {trade.shares.toFixed(0)}sh
+                      </div>
+                    </div>
+
+                    {/* Time */}
+                    <div style={s.tradeTime}>{timeStr}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* ===== OPEN POSITIONS - Compact Cards with Always-Visible Sparklines ===== */}
         <section style={s.section}>
@@ -1769,6 +1943,136 @@ const s = {
     fontWeight: 600,
     fontFamily: '"SF Mono", monospace',
     color: '#ffffff',
+  },
+
+  // Performance Section
+  performanceSection: {
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  performanceHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  performanceTitle: {
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: '0.1em',
+    color: '#6b7280',
+  },
+  performanceGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: 16,
+    padding: 16,
+    background: '#0a0b0d',
+    borderRadius: 12,
+    border: '1px solid #1a1a1f',
+  },
+  performanceStat: {
+    textAlign: 'center',
+  },
+  performanceValue: {
+    fontSize: 24,
+    fontWeight: 700,
+    fontFamily: '"SF Mono", monospace',
+    color: '#ffffff',
+  },
+  performanceLabel: {
+    fontSize: 10,
+    color: '#6b7280',
+    marginTop: 4,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+  performanceSubgrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: 12,
+    padding: '12px 16px',
+    background: '#0a0b0d',
+    borderRadius: 8,
+    border: '1px solid #1a1a1f',
+    marginTop: 12,
+  },
+  performanceSmallStat: {
+    textAlign: 'center',
+  },
+  performanceSmallValue: {
+    fontSize: 14,
+    fontWeight: 600,
+    fontFamily: '"SF Mono", monospace',
+  },
+  performanceSmallLabel: {
+    fontSize: 9,
+    color: '#4b5563',
+    marginTop: 2,
+  },
+
+  // Trade List Section (Recent Trades)
+  tradeListSection: {
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  tradeListHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  tradeListTitle: {
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: '0.1em',
+    color: '#6b7280',
+  },
+  tradeListContainer: {
+    background: '#0a0b0d',
+    borderRadius: 12,
+    border: '1px solid #1a1a1f',
+    overflow: 'hidden',
+  },
+  tradeItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    padding: '10px 16px',
+    borderBottom: '1px solid #1a1a1f',
+  },
+  tradeBar: {
+    height: 24,
+    borderRadius: 4,
+    minWidth: 8,
+  },
+  tradePnlValue: {
+    fontSize: 14,
+    fontWeight: 600,
+    fontFamily: '"SF Mono", monospace',
+    minWidth: 70,
+  },
+  tradeEventInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  tradeEventName: {
+    fontSize: 12,
+    color: '#9ca3af',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  tradePriceRange: {
+    fontSize: 11,
+    color: '#6b7280',
+    fontFamily: '"SF Mono", monospace',
+  },
+  tradeTime: {
+    fontSize: 10,
+    color: '#4b5563',
+    textAlign: 'right',
+    minWidth: 60,
   },
 
   // Sections
