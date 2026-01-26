@@ -1280,11 +1280,13 @@ const ScalpingDashboard = ({ pin }) => {
                 const maxPnl = Math.max(...closingTrades.slice(0, 20).map(t => Math.abs(t.realizedPnl || 0)), 1);
                 const barWidth = Math.max(8, Math.min(120, (Math.log(Math.abs(pnl) + 1) / Math.log(maxPnl + 1)) * 120));
 
-                const timeStr = new Date(trade.timestamp).toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true
-                }).replace(' ', '');  // "10:15PM" not "10:15 PM"
+                const timeStr = trade.timestamp
+                  ? new Date(trade.timestamp).toLocaleTimeString('en-US', {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true
+                    }).replace(' ', '')  // "10:15PM" not "10:15 PM"
+                  : '--:--';
 
                 return (
                   <div key={trade.id || idx} style={s.tradeRowCompact}>
@@ -2196,7 +2198,8 @@ const s = {
     textAlign: 'right',
   },
   tradeTimeCell: {
-    flex: 1,
+    width: 70,
+    flexShrink: 0,
     fontSize: 11,
     color: '#4b5563',
     textAlign: 'right',
