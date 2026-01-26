@@ -179,6 +179,40 @@ const ExitTargets = ({ entryPrice, shares, cost }) => {
   );
 };
 
+// ===== TARGET INDICATORS - Shows price targets with current status =====
+const TargetIndicators = ({ current, entry, targets = [] }) => {
+  if (!targets || targets.length === 0) return null;
+  
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      gap: 6,
+      fontSize: 10,
+      marginTop: 8,
+    }}>
+      {targets.map((target, i) => {
+        const hit = current >= target.price;
+        return (
+          <span 
+            key={i}
+            style={{
+              background: hit ? 'rgba(34, 197, 94, 0.2)' : '#374151',
+              color: hit ? '#22c55e' : '#9ca3af',
+              padding: '2px 6px',
+              borderRadius: 4,
+              fontWeight: 600,
+              fontFamily: '"SF Mono", monospace',
+            }}
+          >
+            {target.label} @ {(target.price * 100).toFixed(0)}¢
+          </span>
+        );
+      })}
+    </div>
+  );
+};
+
 const ScalpingDashboard = ({ pin }) => {
   const [positions, setPositions] = useState(() => {
     if (typeof window === 'undefined') return [];
