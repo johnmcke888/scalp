@@ -234,6 +234,13 @@ const ScalpingDashboard = ({ pin }) => {
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
+  const [resolutionTrades, setResolutionTrades] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = localStorage.getItem('scalper-resolution-trades');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [activitiesError, setActivitiesError] = useState(null);
   const [expandedEvents, setExpandedEvents] = useState({});
@@ -691,14 +698,19 @@ const ScalpingDashboard = ({ pin }) => {
       const grouped = groupTradesByEvent(trades);
       const metrics = calculatePerformanceMetrics(grouped);
       const closingTradesList = getClosingTrades(trades);
+      
+      // Extract resolution trades separately
+      const resolutionTradesList = trades.filter(trade => trade.type === 'RESOLUTION');
 
       setTradeHistory(grouped);
       setPerformanceMetrics(metrics);
       setClosingTrades(closingTradesList);
+      setResolutionTrades(resolutionTradesList);
 
       // Persist to localStorage
       localStorage.setItem('scalper-performance-metrics', JSON.stringify(metrics));
       localStorage.setItem('scalper-closing-trades', JSON.stringify(closingTradesList));
+      localStorage.setItem('scalper-resolution-trades', JSON.stringify(resolutionTradesList));
     } catch (err) {
       console.error('Failed to fetch activities:', err);
       setActivitiesError(err.message);
@@ -1337,61 +1349,66 @@ const ScalpingDashboard = ({ pin }) => {
           </section>
         )}
 
-        {/* ===== HELD TO RESOLUTION - Positions not fully closed ===== */}
-        {heldPositions.length > 0 && (
+        {/* ===== POSITION RESOLUTIONS - Auto-populated from API ===== */}
+        {resolutionTrades.length > 0 && (
           <section style={s.heldSection}>
             <div style={s.tradeListHeader}>
-              <span style={s.tradeListTitle}>HELD TO RESOLUTION</span>
-              <span style={{ fontSize: 10, color: '#f59e0b' }}>⚠ manual entry needed</span>
+              <span style={s.tradeListTitle}>POSITION RESOLUTIONS ({resolutionTrades.length})</span>
+              <span style={{ fontSize: 10, color: '#10b981' }}>✓ auto-populated</span>
             </div>
             <div style={s.tradeListContainer}>
-              {heldPositions.map((pos) => {
-                // Extract team name from first trade if available
-                const firstTrade = pos.trades?.[0];
-                const teamColor = firstTrade?.teamColor || '#9ca3af';
+              {resolutionTrades
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .map((resolution) => {
+                  const avgPrice = resolution.originalPrice || 0;
+                  const timeStr = new Date(resolution.timestamp).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true,
+                  });
 
-                return (
-                  <div key={pos.slug} style={s.heldRow}>
-                    <div style={s.heldInfo}>
-                      <span style={{ ...s.heldTitle, color: teamColor }}>
-                        {pos.title || pos.slug}
-                      </span>
-                      <span style={{
-                        ...s.heldBadge,
-                        background: pos.heldType === 'LONG' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                        color: pos.heldType === 'LONG' ? '#22c55e' : '#ef4444',
-                      }}>
-                        {pos.heldType}
-                      </span>
-                      {pos.league && (
-                        <span style={s.heldLeague}>{pos.league}</span>
-                      )}
+                  return (
+                    <div key={resolution.id} style={s.heldRow}>
+                      <div style={s.heldInfo}>
+                        <span style={{ ...s.heldTitle, color: resolution.teamColor || '#9ca3af' }}>
+                          {resolution.title || resolution.marketSlug}
+                        </span>
+                        <span style={{
+                          ...s.heldBadge,
+                          background: resolution.won ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                          color: resolution.won ? '#22c55e' : '#ef4444',
+                        }}>
+                          {resolution.won ? 'WON' : 'LOST'}
+                        </span>
+                        {resolution.league && (
+                          <span style={s.heldLeague}>{resolution.league}</span>
+                        )}
+                      </div>
+                      <div style={s.heldDetails}>
+                        <span style={s.heldShareInfo}>
+                          Bet on: {resolution.team}
+                        </span>
+                        <span style={s.heldShareInfo}>
+                          {resolution.shares.toFixed(0)} shares @ {(avgPrice * 100).toFixed(0)}¢ avg
+                        </span>
+                        <span style={s.heldCost}>
+                          Cost: ${resolution.costBasis?.toFixed(2)} → Payout: ${resolution.payout?.toFixed(2)} 
+                          <span style={{ 
+                            color: resolution.realizedPnl >= 0 ? '#22c55e' : '#ef4444',
+                            marginLeft: 8,
+                          }}>
+                            ({resolution.realizedPnl >= 0 ? '+' : ''}${resolution.realizedPnl?.toFixed(2)})
+                          </span>
+                        </span>
+                        <span style={{ fontSize: 10, color: '#6b7280' }}>
+                          {timeStr}
+                        </span>
+                      </div>
                     </div>
-                    <div style={s.heldDetails}>
-                      <span style={s.heldShareInfo}>
-                        {pos.heldShares.toFixed(0)} shares @ {(pos.avgHeldPrice * 100).toFixed(0)}¢ avg
-                      </span>
-                      <span style={s.heldCost}>
-                        Cost: ${pos.heldCost.toFixed(2)}
-                      </span>
-                    </div>
-                    <div style={s.heldActions}>
-                      <button
-                        style={s.heldWinBtn}
-                        onClick={() => markResolution(pos.slug, 'WIN', pos.heldShares)}
-                      >
-                        ✓ WON (${pos.heldShares.toFixed(2)})
-                      </button>
-                      <button
-                        style={s.heldLossBtn}
-                        onClick={() => markResolution(pos.slug, 'LOSS', 0)}
-                      >
-                        ✗ LOST ($0)
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           </section>
         )}
