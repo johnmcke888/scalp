@@ -1,17 +1,31 @@
-# CLAUDE.md - Polymarket Scalping Dashboard
+# CLAUDE.md - Polymarket US Scalping Dashboard
 
 ## 🎯 Current Sprint Goal
-Fix trade history bugs, implement unified history view, and ensure P&L calculations handle all edge cases (including positions held to resolution).
+Fix trade history bugs, implement unified history view, and ensure P&L calculations handle all edge cases including positions held to resolution.
+
+---
+
+## ⚠️ CRITICAL: This is Polymarket US, NOT Polymarket.com
+
+**Polymarket US** (polymarket.us) = CFTC-regulated, fiat USD, iOS app, US-only
+**Polymarket.com** = International, crypto/USDC, blockchain on Polygon
+
+These are COMPLETELY DIFFERENT products with DIFFERENT APIs. 
+- API Base URL: `https://api.polymarket.us`
+- Auth: Ed25519 signatures
+- Currency: USD (not USDC, not crypto)
+
+**NEVER reference docs.polymarket.com - only use docs.polymarket.us**
 
 ---
 
 ## 📋 Project Overview
 
 ### What This Is
-A web-based dashboard for tracking Polymarket sports betting positions and trades. Users buy/sell shares on sports outcomes (team wins), aiming to scalp profits from price movements before games resolve.
+A web-based dashboard for tracking Polymarket US sports betting positions and trades. Users buy/sell contracts on sports outcomes (team wins), aiming to scalp profits from price movements before games resolve.
 
 ### Who Uses It
-A single user (John) who actively trades on Polymarket's beta. He needs instant visual feedback on:
+A single user (John) who actively trades on Polymarket US beta. He needs instant visual feedback on:
 1. Current positions and real-time P&L
 2. Trade history with accurate profit/loss per game
 3. Performance analytics
@@ -20,106 +34,162 @@ A single user (John) who actively trades on Polymarket's beta. He needs instant 
 - **Frontend**: Next.js 14 (App Router) + React 18 + TypeScript
 - **Styling**: Tailwind CSS - BRUTALIST aesthetic (no rounded corners, no polish)
 - **State**: React hooks + localStorage for persistence
-- **Data**: Polymarket REST API + WebSocket for real-time prices
-- **Auth**: Ed25519 signatures for Polymarket API
+- **Data**: Polymarket US REST API + WebSocket for real-time prices
+- **Auth**: Ed25519 signatures for Polymarket US API
 
-### Directory Structure (expected)
+---
+
+## 🔌 Polymarket US API Reference
+
+### Base URL
 ```
-src/
-├── app/                    # Next.js pages
-│   ├── api/               # API routes (proxy to Polymarket)
-│   └── page.tsx           # Main dashboard
-├── components/            # React components
-│   ├── PositionsPanel/    # Current positions display
-│   ├── TradeHistory/      # Historical trades
-│   └── Performance/       # Stats and analytics
-├── lib/                   # Utilities
-│   ├── polymarket/        # API client, WebSocket, auth
-│   └── utils/             # Helpers, calculations
-├── hooks/                 # Custom React hooks
-└── types/                 # TypeScript interfaces
+https://api.polymarket.us
 ```
+
+### Positions Endpoint
+```
+GET /v1/portfolio/positions
+
+Response:
+{
+  "positions": {
+    "market-slug-here": {
+      "netPosition": "100",        // Net qty (positive=long, negative=short)
+      "qtyBought": "100",          // Total bought
+      "qtySold": "0",              // Total sold
+      "cost": { "value": "50.00", "currency": "USD" },
+      "realized": { "value": "0", "currency": "USD" },
+      "cashValue": { "value": "65.00", "currency": "USD" },  // ACTUAL VALUE IF SOLD NOW
+      "qtyAvailable": "100",
+      "expired": false,
+      "marketMetadata": {
+        "slug": "market-slug",
+        "title": "Team A vs Team B",
+        "outcome": "Team A"
+      }
+    }
+  },
+  "nextCursor": "abc123",
+  "eof": false
+}
+```
+
+### Activities Endpoint (Trade History)
+```
+GET /v1/portfolio/activities
+GET /v1/portfolio/activities?types=ACTIVITY_TYPE_TRADE&marketSlug=market-slug
+
+Response:
+{
+  "activities": [
+    {
+      "type": "ACTIVITY_TYPE_TRADE",
+      "trade": {
+        "id": "trade-123",
+        "marketSlug": "lakers-vs-celtics",
+        "state": "CLEARED",
+        "price": { "value": "0.65", "currency": "USD" },
+        "qty": "100",
+        "isAggressor": true,
+        "costBasis": { "value": "65.00", "currency": "USD" },
+        "realizedPnl": { "value": "0", "currency": "USD" },
+        "createTime": "2025-01-25T21:30:00Z",
+        "updateTime": "2025-01-25T21:30:00Z"
+      }
+    },
+    {
+      "type": "ACTIVITY_TYPE_POSITION_RESOLUTION",
+      "positionResolution": {
+        "marketSlug": "lakers-vs-celtics",
+        "beforePosition": { ... },
+        "afterPosition": { ... },
+        "side": "LONG",           // LONG, SHORT, or NEUTRAL
+        "tradeId": "resolution-456",
+        "updateTime": "2025-01-26T03:00:00Z"
+      }
+    }
+  ],
+  "nextCursor": "xyz789",
+  "eof": false
+}
+```
+
+### Activity Types
+| Type | Description |
+|------|-------------|
+| ACTIVITY_TYPE_TRADE | Buy or sell execution |
+| ACTIVITY_TYPE_POSITION_RESOLUTION | Market settled, position resolved |
+| ACTIVITY_TYPE_ACCOUNT_DEPOSIT | Deposit |
+| ACTIVITY_TYPE_ACCOUNT_WITHDRAWAL | Withdrawal |
+
+### Account Balances
+```
+GET /v1/account/balances
+
+Response:
+{
+  "balances": [{
+    "currentBalance": 1000.00,
+    "currency": "USD",
+    "buyingPower": 850.00,
+    "assetNotional": 500.00,
+    "openOrders": 400.00
+  }]
+}
+```
+
+### Pagination
+All endpoints use cursor-based pagination:
+- `nextCursor` in response → pass as `cursor` param for next page
+- `eof: true` means no more results
+
+### ⚠️ NO Historical Price Data Endpoint
+Polymarket US Retail API does NOT have a `/prices-history` endpoint.
+Price charts must be built from:
+1. Real-time WebSocket data collected while app is running
+2. Your own trade timestamps and prices from activities endpoint
 
 ---
 
 ## ⚠️ Critical Domain Knowledge
 
-### Polymarket Basics
-- Users buy "shares" in outcomes (e.g., "Lakers win") priced 0-100 cents
+### Polymarket US Basics
+- Users buy "contracts" on outcomes (e.g., "Lakers win") priced $0.01-$1.00
 - Price = implied probability (65¢ = 65% chance)
-- If your team wins, each share pays $1.00
-- If your team loses, shares worth $0.00
+- If your team wins, each contract pays $1.00
+- If your team loses, contracts worth $0.00
 - You can sell early at market price (scalping)
+- All values in USD (not crypto)
 
 ### Two Ways to Exit a Position
-1. **Sell early (scalp)**: You get `shares × sellPrice` immediately
-2. **Hold to resolution**: If you win, you get `shares × $1.00`. If you lose, you get $0.
+1. **Sell early (scalp)**: You get `qty × sellPrice` immediately
+2. **Hold to resolution**: If you win → `qty × $1.00`. If you lose → $0.
 
 ### P&L Calculation
 ```
-For scalped positions:
+For scalped positions (sold before resolution):
   P&L = sellProceeds - buyCost
 
 For positions held to resolution:
-  If won:  P&L = shares × $1.00 - buyCost
+  If won:  P&L = qty × $1.00 - buyCost
   If lost: P&L = $0 - buyCost = -buyCost
+
+Total P&L = realized (from sells) + resolution payout (if resolved)
 ```
 
 ### The Bid-Ask Spread Problem
-Polymarket shows two different prices:
-- **Mid/Last price**: What the UI shows as "current price"
-- **Ask price**: What you'd actually pay to buy more
-- **Bid price**: What you'd actually get if you sold now
+Polymarket shows two different prices in the app:
+- **"Current"** = mid-market or last trade price
+- **"Buy more"** = ask price (what you'd actually pay)
 
 When liquidity is low, these can differ by 20-30+ cents!
-**ALWAYS use `cashValue` from API for accurate position value, not `midPrice × shares`**
+**ALWAYS use `cashValue` from API for accurate position value**
 
-### Which Side Did I Bet?
-Each trade has an `outcome` field that says which side (e.g., "Lakers" or "Celtics").
-The `asset` field is the token ID for that specific side.
-A game has TWO tokens: one for each team. Prices are complementary (if Lakers = 65¢, Celtics = 35¢).
-
----
-
-## 🔌 Polymarket API Reference
-
-### Get Historical Price Chart (for ANY market, even closed)
-```
-GET https://clob.polymarket.com/prices-history
-  ?market={tokenId}
-  &interval=max        # or: 1h, 6h, 1d, 1w, max
-  &fidelity=60         # resolution in minutes
-
-Response: { "history": [{ "t": 1697875200, "p": 0.65 }, ...] }
-```
-
-### Get User Trade History
-```
-GET https://data-api.polymarket.com/activity
-  ?user={walletAddress}
-
-Response: [{
-  "timestamp": 1723772457,
-  "conditionId": "0x...",
-  "type": "TRADE",
-  "size": 600,           # shares
-  "usdcSize": 354,       # cost in USDC (cents)
-  "price": 0.59,         # price per share
-  "asset": "10783614...", # token ID (use this for price history!)
-  "side": "BUY",         # or "SELL"
-  "outcome": "Lakers",   # which team/side
-  "title": "Lakers vs Celtics",
-  ...
-}]
-```
-
-### Get Current Positions
-```
-GET https://data-api.polymarket.com/positions
-  ?user={walletAddress}
-
-Response includes `cashValue` - the ACTUAL value if sold now (accounts for bid-ask spread)
-```
+### Detecting Resolution in Activities
+When `ACTIVITY_TYPE_POSITION_RESOLUTION` appears:
+- `side: "LONG"` and you won → you got $1 per contract
+- `side: "LONG"` and you lost → you got $0
+- Check `afterPosition` to see the payout
 
 ---
 
@@ -127,21 +197,13 @@ Response includes `cashValue` - the ACTUAL value if sold now (accounts for bid-a
 
 ### BUG 1: Only Showing 4 Trades
 **Symptom**: Trade history shows only last 4 trades instead of full history
-**Likely cause**: Missing pagination, API returns paginated results
-**Fix**: Check for `nextCursor` in response, fetch all pages
+**Likely cause**: Not handling pagination (`nextCursor`/`eof`)
+**Fix**: Loop until `eof: true`, concatenating all activities
 
-### BUG 2: Positions Held to Resolution Not Counted
+### BUG 2: Positions Held to Resolution Not Counted in P&L
 **Symptom**: Seahawks trade shows +$7.37 but should show +$32.03
-**Root cause**: P&L calculation only counts buy/sell trades, ignores resolution payouts
-**Example**:
-```
-Buys: -$51.52, -$49.77, -$108.34 = -$209.63
-Sells: +$108.66
-Resolution: +$131.00 (team won, 131 shares × $1)
-Correct P&L: -209.63 + 108.66 + 131 = +$30.03
-Current bug: -209.63 + 108.66 = -$100.97 (or only partial)
-```
-**Fix**: Detect resolved positions, add resolution payout to P&L
+**Root cause**: P&L only counts ACTIVITY_TYPE_TRADE, ignores ACTIVITY_TYPE_POSITION_RESOLUTION
+**Fix**: Include resolution payouts in P&L calculation
 
 ### BUG 3: History vs Trade History Confusion
 **Symptom**: Two separate sections showing overlapping data
@@ -149,51 +211,21 @@ Current bug: -209.63 + 108.66 = -$100.97 (or only partial)
 
 ### BUG 4: Missing Timestamps on Recent Trades
 **Symptom**: Recent trades panel shows no time
-**Fix**: Add timestamp display
+**Fix**: Display `createTime` from trade object
 
-### BUG 5: Price Display Using Wrong Value
-**Symptom**: Shows wildly inaccurate P&L (58¢ vs 23¢ difference)
-**Root cause**: Using ask/buy price instead of cashValue for current value
-**Fix**: Use `cashValue` from positions API for accurate valuation
-
----
-
-## ✅ Acceptance Criteria for Unified History View
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ TRADE HISTORY                                    ↻ Refresh  │
-├─────────────────────────────────────────────────────────────┤
-│ Miami vs Phoenix                         NBA · CLOSED · WON │
-│ HEAT (bought)    87¢ ──████████████──▶ 96¢        +$16.93  │
-│ 184 shares · held 2h 14m · 10:15 PM Jan 25                  │
-│ [+ show trades] [+ show chart]                              │
-├─────────────────────────────────────────────────────────────┤
-│ San Antonio vs Houston                   NBA · CLOSED · LOSS│
-│ SPURS (bought)   70¢ ────────────▶ 0¢           -$135.60  │
-│ 200 shares · HELD TO RESOLUTION                             │
-│ ⚠️ Hindsight: If held to win, would be +$200               │
-│ [+ show trades] [+ show chart]                              │
-└─────────────────────────────────────────────────────────────┘
-```
-
-Requirements:
-- [ ] Shows ALL trades, not just last 4
-- [ ] Each row shows: teams, league, status (OPEN/CLOSED), outcome (WON/LOSS)
-- [ ] Shows WHICH SIDE was bet (e.g., "HEAT (bought)")
-- [ ] Visual bar showing entry→exit on 0-100¢ scale
-- [ ] Accurate P&L including resolution payouts
-- [ ] Hold duration and timestamp
-- [ ] Expandable trade details
-- [ ] Price chart available (fetched via /prices-history)
+### BUG 5: Position Value Using Wrong Price
+**Symptom**: Shows wildly inaccurate P&L (58¢ vs 23¢)
+**Root cause**: Using ask price instead of cashValue
+**Fix**: Use `cashValue` from positions API
 
 ---
 
 ## 🚫 DO NOT TOUCH
 
-1. **Auth code** in `src/lib/polymarket/auth.ts` - Ed25519 signing is fragile
-2. **WebSocket connection** logic - only fix if specifically asked
+1. **Auth code** - Ed25519 signing is fragile
+2. **WebSocket connection logic** - only fix if specifically asked
 3. **UI aesthetic** - keep brutalist, no rounded corners, no dark theme changes
+4. **Never reference docs.polymarket.com** - wrong product entirely
 
 ---
 
@@ -227,8 +259,8 @@ npm run dev           # Start server, check browser at localhost:3000
 ## 📝 Task Queue (Work Top to Bottom)
 
 ### Phase 1: Fix Core Bugs
-- [ ] Fix trade history pagination (show ALL trades)
-- [ ] Fix P&L calculation for positions held to resolution
+- [ ] Fix trade history pagination (show ALL trades via cursor)
+- [ ] Fix P&L calculation for positions held to resolution (use ACTIVITY_TYPE_POSITION_RESOLUTION)
 - [ ] Use cashValue for accurate current position value
 
 ### Phase 2: Unified History View
@@ -238,12 +270,11 @@ npm run dev           # Start server, check browser at localhost:3000
 - [ ] Show which side was bet explicitly
 - [ ] Add hold duration calculation
 
-### Phase 3: Price Charts for Closed Positions
-- [ ] Fetch historical prices using /prices-history endpoint
-- [ ] Store token IDs (asset) from trades for later lookup
-- [ ] Display price chart in expanded trade detail view
-
-### Phase 4: Edge Detection (Future)
-- [ ] Flip Feasibility Score
-- [ ] Arbitrage detection
+### Phase 3: Opportunity Detection
+- [ ] Flip Feasibility Score (comeback probability vs market price)
+- [ ] Live scores integration
 - [ ] Price alerts
+
+### Phase 4: Arbitrage (Future)
+- [ ] Compare Polymarket US odds vs sportsbooks
+- [ ] Arb calculator
