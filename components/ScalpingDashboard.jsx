@@ -1204,11 +1204,13 @@ const ScalpingDashboard = ({ pin }) => {
               </div>
               <div style={s.performanceStat}>
                 <div style={s.performanceValue}>
-                  {performanceMetrics.winners}/{performanceMetrics.totalEvents}
-                  <span style={{ fontSize: 12, color: '#6b7280', marginLeft: 4 }}>wins</span>
+                  {performanceMetrics.winners}
+                  <span style={{ fontSize: 12, color: '#6b7280', marginLeft: 4 }}>
+                    {performanceMetrics.winners === 1 ? 'win' : 'wins'}
+                  </span>
                 </div>
                 <div style={s.performanceLabel}>
-                  ({performanceMetrics.losers} {performanceMetrics.losers === 1 ? 'loss' : 'losses'})
+                  {performanceMetrics.losers} {performanceMetrics.losers === 1 ? 'loss' : 'losses'} / {performanceMetrics.totalEvents} total
                 </div>
               </div>
               <div style={s.performanceStat}>
@@ -1267,88 +1269,64 @@ const ScalpingDashboard = ({ pin }) => {
             </div>
             <div style={s.tradeListContainer}>
               {closingTrades.slice(0, 20).map((trade, idx) => {
-                const isWin = trade.realizedPnl >= 0;
-                // Calculate bar width using log scale to handle outliers
-                const maxPnl = Math.max(...closingTrades.slice(0, 20).map(t => Math.abs(t.realizedPnl)));
-                const pnlAbs = Math.abs(trade.realizedPnl);
-                const barWidth = maxPnl > 0
-                  ? Math.max(20, Math.min(200, (Math.log(pnlAbs + 1) / Math.log(maxPnl + 1)) * 150))
-                  : 20;
-
-                const tradeTime = new Date(trade.timestamp);
-                const timeStr = tradeTime.toLocaleTimeString([], {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                });
-
-                // Get team color
-                const teamColor = trade.teamColor || (isWin ? '#39ff14' : '#ff3b30');
-
-                // Calculate price change in cents
+                const pnl = trade.realizedPnl || 0;
+                const isWin = pnl >= 0;
                 const entryPrice = trade.originalPrice || 0;
                 const exitPrice = trade.price || 0;
-                const priceDiffCents = Math.round((exitPrice - entryPrice) * 100);
-                const priceDiffSign = priceDiffCents >= 0 ? '+' : '';
-
-                // Determine if this is a short trade
                 const isShort = trade.intent?.includes('SHORT');
+                const teamColor = trade.teamColor || '#9ca3af';
+
+                // Bar width: log scale, min 8px, max 120px
+                const maxPnl = Math.max(...closingTrades.slice(0, 20).map(t => Math.abs(t.realizedPnl || 0)), 1);
+                const barWidth = Math.max(8, Math.min(120, (Math.log(Math.abs(pnl) + 1) / Math.log(maxPnl + 1)) * 120));
+
+                const timeStr = new Date(trade.timestamp).toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                }).replace(' ', '');  // "10:15PM" not "10:15 PM"
 
                 return (
-                  <div key={trade.id || idx} style={s.tradeItem}>
-                    {/* Row 1: Team | Bar | P&L (shares) | Time */}
-                    <div style={s.tradeRowMain}>
-                      {/* Team Name */}
-                      <span style={{
-                        ...s.tradeTeamName,
-                        color: teamColor,
-                      }}>
-                        {trade.team}{isShort ? ' (short)' : ''}
+                  <div key={trade.id || idx} style={s.tradeRowCompact}>
+                    {/* Team name + short indicator */}
+                    <div style={s.tradeTeamCell}>
+                      <span style={{ color: teamColor, fontWeight: 600 }}>
+                        {trade.team}
                       </span>
-
-                      {/* P&L Bar */}
-                      <div
-                        style={{
-                          ...s.tradeBar,
-                          width: barWidth,
-                          background: isWin
-                            ? `linear-gradient(90deg, ${teamColor}, ${teamColor}88)`
-                            : `linear-gradient(90deg, #ff3b30, #ff3b3088)`,
-                        }}
-                      />
-
-                      {/* P&L Value */}
-                      <span style={{
-                        ...s.tradePnlValue,
-                        color: isWin ? '#39ff14' : '#ff3b30',
-                      }}>
-                        {isWin ? '+' : ''}${trade.realizedPnl.toFixed(2)}
-                      </span>
-
-                      {/* Shares */}
-                      <span style={s.tradeShares}>
-                        ({trade.shares.toFixed(0)}sh)
-                      </span>
-
-                      {/* Time */}
-                      <span style={s.tradeTime}>{timeStr}</span>
+                      {isShort && <span style={s.shortBadge}>▼</span>}
                     </div>
 
-                    {/* Row 2: Price range with cent change */}
-                    <div style={s.tradeRowSub}>
-                      <span style={s.tradePriceRange}>
-                        {trade.originalPrice !== null
-                          ? `${(entryPrice * 100).toFixed(0)}¢→${(exitPrice * 100).toFixed(0)}¢`
-                          : `@${(exitPrice * 100).toFixed(0)}¢`
-                        }
-                        {trade.originalPrice !== null && (
-                          <span style={{
-                            color: priceDiffCents >= 0 ? '#22c55e' : '#ef4444',
-                            marginLeft: 6,
-                          }}>
-                            ({priceDiffSign}{priceDiffCents}¢)
-                          </span>
-                        )}
-                      </span>
+                    {/* Entry → Exit price */}
+                    <div style={s.tradePriceCell}>
+                      {(entryPrice * 100).toFixed(0)}→{(exitPrice * 100).toFixed(0)}¢
+                    </div>
+
+                    {/* P&L Bar - GREEN for win, RED for loss */}
+                    <div style={s.tradeBarCell}>
+                      <div style={{
+                        width: barWidth,
+                        height: 16,
+                        borderRadius: 2,
+                        backgroundColor: isWin ? '#22c55e' : '#ef4444',
+                      }} />
+                    </div>
+
+                    {/* P&L value */}
+                    <div style={{
+                      ...s.tradePnlCell,
+                      color: isWin ? '#22c55e' : '#ef4444',
+                    }}>
+                      {isWin ? '+' : ''}${pnl.toFixed(2)}
+                    </div>
+
+                    {/* Shares */}
+                    <div style={s.tradeSharesCell}>
+                      {trade.shares.toFixed(0)}sh
+                    </div>
+
+                    {/* Time */}
+                    <div style={s.tradeTimeCell}>
+                      {timeStr}
                     </div>
                   </div>
                 );
@@ -2168,65 +2146,61 @@ const s = {
     border: '1px solid #1a1a1f',
     overflow: 'hidden',
   },
-  tradeItem: {
-    padding: '10px 16px',
-    borderBottom: '1px solid #1a1a1f',
-  },
-  tradeRowMain: {
+  tradeRowCompact: {
     display: 'flex',
     alignItems: 'center',
-    gap: 12,
+    padding: '8px 12px',
+    borderBottom: '1px solid #1a1a1f',
+    gap: 8,
   },
-  tradeRowSub: {
-    marginTop: 4,
-    paddingLeft: 0,
-  },
-  tradeTeamName: {
+  tradeTeamCell: {
+    width: 110,
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
     fontSize: 13,
     fontWeight: 600,
-    minWidth: 100,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
   },
-  tradeBar: {
-    height: 20,
-    borderRadius: 3,
-    minWidth: 20,
+  shortBadge: {
+    fontSize: 10,
+    color: '#f59e0b',
+    marginLeft: 2,
+  },
+  tradePriceCell: {
+    width: 70,
     flexShrink: 0,
+    fontSize: 11,
+    color: '#6b7280',
+    fontFamily: '"SF Mono", Monaco, monospace',
   },
-  tradePnlValue: {
+  tradeBarCell: {
+    width: 120,
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+  },
+  tradePnlCell: {
+    width: 70,
+    flexShrink: 0,
     fontSize: 14,
     fontWeight: 700,
     fontFamily: '"SF Mono", Monaco, monospace',
-    minWidth: 65,
+    textAlign: 'right',
   },
-  tradeShares: {
+  tradeSharesCell: {
+    width: 50,
+    flexShrink: 0,
     fontSize: 11,
     color: '#6b7280',
-    minWidth: 50,
+    textAlign: 'right',
   },
-  tradeEventInfo: {
+  tradeTimeCell: {
     flex: 1,
-    minWidth: 0,
-  },
-  tradeEventName: {
-    fontSize: 12,
-    color: '#9ca3af',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  tradePriceRange: {
-    fontSize: 11,
-    color: '#6b7280',
-    fontFamily: '"SF Mono", Monaco, monospace',
-  },
-  tradeTime: {
     fontSize: 11,
     color: '#4b5563',
     textAlign: 'right',
-    marginLeft: 'auto',
+    whiteSpace: 'nowrap',
   },
 
   // Held to Resolution Section
