@@ -1347,15 +1347,15 @@ const ScalpingDashboard = ({ pin }) => {
                           <span style={s.posCurrentPrice}>
                             {(p.currentPrice * 100).toFixed(1)}¢
                           </span>
-                          <PriceChangeIndicator change={p.priceDelta} />
+                          <PriceChangeIndicator change={p.priceDelta || 0} />
                         </div>
                         
                         <div style={s.posPnl}>
                           <span style={{
-                            color: p.unrealizedPnl >= 0 ? '#39ff14' : '#ff3b30',
+                            color: (p.unrealizedPnl || 0) >= 0 ? '#39ff14' : '#ff3b30',
                             fontWeight: 600,
                           }}>
-                            {p.unrealizedPnl >= 0 ? '+' : ''}${p.unrealizedPnl.toFixed(2)}
+                            {(p.unrealizedPnl || 0) >= 0 ? '+' : ''}${(p.unrealizedPnl || 0).toFixed(2)}
                           </span>
                         </div>
 
