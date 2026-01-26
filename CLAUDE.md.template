@@ -1,0 +1,140 @@
+# CLAUDE.md - Autonomous Agent Instructions
+
+## 🎯 Current Sprint Goal
+<!-- Update this for each work session -->
+Implement [FEATURE X] with full test coverage and verify all acceptance criteria before stopping.
+
+---
+
+## 📋 Architecture Overview
+
+### Tech Stack
+- Frontend: Next.js 14 (App Router) + React 18 + TypeScript
+- Styling: Tailwind CSS (brutalist, spreadsheet-like aesthetic)
+- State: React hooks + Context (no Redux)
+- Data: SQLite + Prisma ORM
+- Real-time: WebSocket connections
+- Auth: Ed25519 signatures for Polymarket API
+
+### Directory Structure
+```
+src/
+├── app/           # Next.js app router pages
+├── components/    # React components
+├── lib/           # Utilities, API clients, helpers
+├── hooks/         # Custom React hooks
+├── types/         # TypeScript interfaces
+└── services/      # External API integrations
+```
+
+### Key Patterns
+- All API calls go through `src/lib/api/` wrappers
+- WebSocket connections managed in `src/services/websocket.ts`
+- Price calculations use `Decimal.js` for precision (never floats)
+- All money values stored as cents (integers)
+
+---
+
+## ⚡ Autonomous Work Mode
+
+### When given a task, you MUST:
+1. **Plan first**: List all files you'll touch and why
+2. **Implement incrementally**: One logical change at a time
+3. **Test after each change**: Run relevant tests, check for type errors
+4. **Self-verify**: Actually confirm the fix works (don't assume)
+5. **Continue or escalate**: If tests pass, move to next task. If stuck after 3 attempts, document the blocker and move on.
+
+### Self-Verification Commands
+```bash
+# After any change, run these:
+npm run typecheck          # Must pass
+npm run lint               # Must pass  
+npm run test               # Must pass
+npm run dev &              # Start server
+curl localhost:3000/api/health  # Verify running
+```
+
+### Definition of Done (DoD)
+A feature is DONE when:
+- [ ] Implementation matches spec exactly
+- [ ] TypeScript compiles with no errors
+- [ ] All tests pass
+- [ ] Manual smoke test confirms behavior
+- [ ] No console errors in browser
+- [ ] Code committed with conventional commit message
+
+---
+
+## 🚫 Critical Rules (Never Violate)
+
+1. **Never delete or modify** files in `/src/lib/polymarket-auth/` - auth is fragile
+2. **Never use floats for money** - always integers (cents) or Decimal.js
+3. **Never commit broken code** - if tests fail, fix before committing
+4. **Never skip the verification step** - actually test your changes
+5. **Preserve brutalist UI** - no rounded corners, no dark themes, no polish
+
+---
+
+## 📝 Current Task Queue
+
+<!-- Claude Code works through this list top-to-bottom -->
+<!-- Mark completed tasks with [x] -->
+
+### High Priority
+- [ ] Task 1: Description here
+  - Acceptance: What "done" looks like
+  - Files: Where to look
+  
+- [ ] Task 2: Description here
+  - Acceptance: What "done" looks like
+  - Files: Where to look
+
+### Medium Priority
+- [ ] Task 3: Description here
+
+### Low Priority / Nice to Have
+- [ ] Task 4: Description here
+
+---
+
+## 🔍 Debugging Playbook
+
+### WebSocket not connecting?
+1. Check `src/services/websocket.ts` - is URL correct?
+2. Check browser console for CORS errors
+3. Verify server is running on expected port
+
+### Prices not updating?
+1. Check WebSocket message handler in `src/hooks/usePriceStream.ts`
+2. Verify message format matches expected schema
+3. Check if component is subscribed to correct market IDs
+
+### Auth failing?
+1. Never touch auth code - check credentials instead
+2. Verify env vars are set: `POLYMARKET_API_KEY`, `POLYMARKET_SECRET`
+3. Check timestamp - Ed25519 signatures are time-sensitive
+
+---
+
+## 📊 Test Data
+
+### Sample Market IDs (for testing)
+```
+abc123...  # NBA game
+def456...  # NFL game  
+```
+
+### Expected Values (for verification)
+- Healthy API response: `{ "status": "ok", "timestamp": <number> }`
+- Valid price range: 0.01 to 0.99
+- WebSocket heartbeat interval: 30 seconds
+
+---
+
+## 💬 Communication Style
+
+When working autonomously:
+- Be terse in commit messages (conventional commits)
+- Log your progress: "✅ Task 1 complete, moving to Task 2"
+- If stuck: "❌ Blocked on X after 3 attempts, documenting and moving on"
+- At end of session: Summary of completed/remaining tasks
