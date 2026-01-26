@@ -7,73 +7,114 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Parse optional query params for filtering/pagination
+  // Parse optional query params for filtering
   const url = new URL(request.url);
-  const limit = url.searchParams.get('limit') || '100';
-  const offset = url.searchParams.get('offset') || '0';
   const type = url.searchParams.get('type'); // e.g., 'ACTIVITY_TYPE_POSITION_RESOLUTION'
 
-  // Build query string for the API
-  let queryString = `?limit=${limit}&offset=${offset}`;
-  if (type) {
-    queryString += `&type=${encodeURIComponent(type)}`;
-  }
-
-  // List of possible endpoint variations to try
-  const endpoints = [
-    `/v1/portfolio/activities${queryString}`,
-    `/v1/portfolio/activities`,  // Try without query params
-    `/v1/portfolio/activity${queryString}`,
+  // List of possible base endpoint variations to try (without pagination params)
+  const baseEndpoints = [
+    `/v1/portfolio/activities`,
     `/v1/portfolio/activity`,
-    `/v1/user/activities${queryString}`,
     `/v1/user/activities`,
-    `/v1/account/activities${queryString}`,
     `/v1/account/activities`,
-    `/v1/portfolio/trades${queryString}`,
     `/v1/portfolio/trades`,
-    `/v1/portfolio/history${queryString}`,
     `/v1/portfolio/history`,
   ];
 
   let lastError = null;
   let successEndpoint = null;
 
-  for (const endpoint of endpoints) {
+  // Step 1: Find which endpoint works by testing with no params
+  for (const endpoint of baseEndpoints) {
     try {
-      console.log(`Trying activities endpoint: ${endpoint}`);
-      const data = await polymarketFetch('GET', endpoint);
-
-      // Log the raw response for debugging
-      console.log('Activities API status: 200');
-      console.log(`Activities API success from: ${endpoint}`);
-      console.log('Activities data structure:', JSON.stringify(data, null, 2).slice(0, 2000));
-
+      console.log(`Testing activities endpoint: ${endpoint}`);
+      await polymarketFetch('GET', endpoint);
       successEndpoint = endpoint;
-
-      return NextResponse.json({
-        data,
-        _meta: {
-          endpoint: successEndpoint,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-        }
-      });
+      console.log(`Found working endpoint: ${successEndpoint}`);
+      break;
     } catch (err) {
       console.log(`Endpoint ${endpoint} failed:`, err.message);
       lastError = err;
     }
   }
 
-  // All endpoints failed
-  console.error('All activities endpoints failed. Last error:', lastError?.message);
-  console.log('Tried endpoints:', endpoints);
+  if (!successEndpoint) {
+    console.error('All activities endpoints failed. Last error:', lastError?.message);
+    return NextResponse.json(
+      {
+        error: 'Failed to fetch activities from all known endpoints',
+        details: lastError?.message,
+        triedEndpoints: baseEndpoints,
+      },
+      { status: 500 }
+    );
+  }
 
-  return NextResponse.json(
-    {
-      error: 'Failed to fetch activities from all known endpoints',
-      details: lastError?.message,
-      triedEndpoints: endpoints,
+  // Step 2: Implement cursor-based pagination to fetch ALL activities
+  const allActivities = [];
+  let cursor = null;
+  let eof = false;
+  let pageCount = 0;
+  const MAX_PAGES = 50; // Safety limit
+
+  while (!eof && pageCount < MAX_PAGES) {
+    // Build URL with cursor-based pagination (NOT limit/offset)
+    let endpoint = successEndpoint;
+    const params = new URLSearchParams();
+    
+    if (cursor) {
+      params.set('cursor', cursor);
+    }
+    if (type) {
+      params.set('type', type);
+    }
+    
+    if (params.toString()) {
+      endpoint += '?' + params.toString();
+    }
+
+    try {
+      console.log(`Fetching activities page ${pageCount + 1}, cursor: ${cursor || 'none'}`);
+      const data = await polymarketFetch('GET', endpoint);
+      
+      const activities = data?.activities || [];
+      allActivities.push(...activities);
+
+      // Update pagination state using cursor-based approach
+      cursor = data?.nextCursor || null;
+      eof = data?.eof === true || !cursor || activities.length === 0;
+      pageCount++;
+
+      console.log(`Got ${activities.length} activities, total: ${allActivities.length}, eof: ${eof}, nextCursor: ${cursor || 'null'}`);
+
+      // Log structure on first page only
+      if (pageCount === 1) {
+        console.log('Activities data structure:', JSON.stringify(data, null, 2).slice(0, 2000));
+      }
+
+    } catch (err) {
+      console.error(`Failed to fetch page ${pageCount + 1}:`, err.message);
+      // If we have some data, return it; otherwise fail
+      if (allActivities.length > 0) {
+        console.log('Returning partial results due to error');
+        break;
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  console.log(`Pagination complete. Total activities fetched: ${allActivities.length} across ${pageCount} pages`);
+
+  return NextResponse.json({
+    data: {
+      activities: allActivities,
     },
-    { status: 500 }
-  );
+    _meta: {
+      endpoint: successEndpoint,
+      totalActivities: allActivities.length,
+      pagesFetched: pageCount,
+      paginationComplete: eof || pageCount >= MAX_PAGES,
+    }
+  });
 }
