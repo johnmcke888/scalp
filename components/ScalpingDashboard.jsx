@@ -238,6 +238,15 @@ const ScalpingDashboard = ({ pin }) => {
   const [activitiesError, setActivitiesError] = useState(null);
   const [expandedEvents, setExpandedEvents] = useState({});
 
+  // Manual resolution tracking for positions held to resolution
+  const [manualResolutions, setManualResolutions] = useState(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const saved = localStorage.getItem('scalper-manual-resolutions');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+
   const [eventData, setEventData] = useState({});
   const [prevPrices, setPrevPrices] = useState({});
   const [priceFlash, setPriceFlash] = useState({});
@@ -704,6 +713,44 @@ const ScalpingDashboard = ({ pin }) => {
       fetchActivities();
     }
   }, [pin]);
+
+  // Handler for manually marking position resolutions
+  const markResolution = (slug, outcome, payout) => {
+    const updated = {
+      ...manualResolutions,
+      [slug]: { outcome, payout, timestamp: Date.now() },
+    };
+    setManualResolutions(updated);
+    localStorage.setItem('scalper-manual-resolutions', JSON.stringify(updated));
+  };
+
+  // Clear a manual resolution
+  const clearResolution = (slug) => {
+    const updated = { ...manualResolutions };
+    delete updated[slug];
+    setManualResolutions(updated);
+    localStorage.setItem('scalper-manual-resolutions', JSON.stringify(updated));
+  };
+
+  // Calculate held positions (incomplete events where buyShares !== sellShares)
+  const heldPositions = useMemo(() => {
+    return Object.values(tradeHistory)
+      .filter(e => !e.isComplete && Math.abs(e.totalBuyShares - e.totalSellShares) > 0.5)
+      .filter(e => !manualResolutions[e.slug]) // Exclude already resolved
+      .map(e => {
+        const heldShares = Math.abs(e.totalBuyShares - e.totalSellShares);
+        const isLong = e.totalBuyShares > e.totalSellShares;
+        return {
+          ...e,
+          heldShares,
+          heldType: isLong ? 'LONG' : 'SHORT',
+          avgHeldPrice: isLong ? e.avgBuyPrice : e.avgSellPrice,
+          heldCost: heldShares * (isLong ? e.avgBuyPrice : e.avgSellPrice),
+          potentialWinPayout: heldShares, // Payout if price goes to $1
+          potentialLossPayout: 0, // Payout if price goes to $0
+        };
+      });
+  }, [tradeHistory, manualResolutions]);
 
   const syncAll = async () => {
     await Promise.all([syncPositions(), syncBalance()]);
@@ -1225,8 +1272,8 @@ const ScalpingDashboard = ({ pin }) => {
                 const maxPnl = Math.max(...closingTrades.slice(0, 20).map(t => Math.abs(t.realizedPnl)));
                 const pnlAbs = Math.abs(trade.realizedPnl);
                 const barWidth = maxPnl > 0
-                  ? Math.max(8, Math.min(120, (Math.log(pnlAbs + 1) / Math.log(maxPnl + 1)) * 120))
-                  : 8;
+                  ? Math.max(20, Math.min(200, (Math.log(pnlAbs + 1) / Math.log(maxPnl + 1)) * 150))
+                  : 20;
 
                 const tradeTime = new Date(trade.timestamp);
                 const timeStr = tradeTime.toLocaleTimeString([], {
@@ -1237,44 +1284,131 @@ const ScalpingDashboard = ({ pin }) => {
                 // Get team color
                 const teamColor = trade.teamColor || (isWin ? '#39ff14' : '#ff3b30');
 
+                // Calculate price change in cents
+                const entryPrice = trade.originalPrice || 0;
+                const exitPrice = trade.price || 0;
+                const priceDiffCents = Math.round((exitPrice - entryPrice) * 100);
+                const priceDiffSign = priceDiffCents >= 0 ? '+' : '';
+
+                // Determine if this is a short trade
+                const isShort = trade.intent?.includes('SHORT');
+
                 return (
                   <div key={trade.id || idx} style={s.tradeItem}>
-                    {/* P&L Bar */}
-                    <div
-                      style={{
-                        ...s.tradeBar,
-                        width: barWidth,
-                        background: isWin
-                          ? `linear-gradient(90deg, ${teamColor}, ${teamColor}88)`
-                          : `linear-gradient(90deg, #ff3b30, #ff3b3088)`,
-                      }}
-                    />
+                    {/* Row 1: Team | Bar | P&L (shares) | Time */}
+                    <div style={s.tradeRowMain}>
+                      {/* Team Name */}
+                      <span style={{
+                        ...s.tradeTeamName,
+                        color: teamColor,
+                      }}>
+                        {trade.team}{isShort ? ' (short)' : ''}
+                      </span>
 
-                    {/* P&L Value */}
-                    <div style={{
-                      ...s.tradePnlValue,
-                      color: isWin ? '#39ff14' : '#ff3b30',
-                    }}>
-                      {isWin ? '+' : ''}${trade.realizedPnl.toFixed(2)}
+                      {/* P&L Bar */}
+                      <div
+                        style={{
+                          ...s.tradeBar,
+                          width: barWidth,
+                          background: isWin
+                            ? `linear-gradient(90deg, ${teamColor}, ${teamColor}88)`
+                            : `linear-gradient(90deg, #ff3b30, #ff3b3088)`,
+                        }}
+                      />
+
+                      {/* P&L Value */}
+                      <span style={{
+                        ...s.tradePnlValue,
+                        color: isWin ? '#39ff14' : '#ff3b30',
+                      }}>
+                        {isWin ? '+' : ''}${trade.realizedPnl.toFixed(2)}
+                      </span>
+
+                      {/* Shares */}
+                      <span style={s.tradeShares}>
+                        ({trade.shares.toFixed(0)}sh)
+                      </span>
+
+                      {/* Time */}
+                      <span style={s.tradeTime}>{timeStr}</span>
                     </div>
 
-                    {/* Trade Details */}
-                    <div style={s.tradeEventInfo}>
-                      <div style={s.tradeEventName}>
-                        <span style={{ color: teamColor }}>{trade.team}</span>
-                      </div>
-                      <div style={s.tradePriceRange}>
+                    {/* Row 2: Price range with cent change */}
+                    <div style={s.tradeRowSub}>
+                      <span style={s.tradePriceRange}>
                         {trade.originalPrice !== null
-                          ? `${(trade.originalPrice * 100).toFixed(0)}¢→${(trade.price * 100).toFixed(0)}¢`
-                          : `@${(trade.price * 100).toFixed(0)}¢`
+                          ? `${(entryPrice * 100).toFixed(0)}¢→${(exitPrice * 100).toFixed(0)}¢`
+                          : `@${(exitPrice * 100).toFixed(0)}¢`
                         }
-                        {' · '}
-                        {trade.shares.toFixed(0)}sh
-                      </div>
+                        {trade.originalPrice !== null && (
+                          <span style={{
+                            color: priceDiffCents >= 0 ? '#22c55e' : '#ef4444',
+                            marginLeft: 6,
+                          }}>
+                            ({priceDiffSign}{priceDiffCents}¢)
+                          </span>
+                        )}
+                      </span>
                     </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
-                    {/* Time */}
-                    <div style={s.tradeTime}>{timeStr}</div>
+        {/* ===== HELD TO RESOLUTION - Positions not fully closed ===== */}
+        {heldPositions.length > 0 && (
+          <section style={s.heldSection}>
+            <div style={s.tradeListHeader}>
+              <span style={s.tradeListTitle}>HELD TO RESOLUTION</span>
+              <span style={{ fontSize: 10, color: '#f59e0b' }}>⚠ manual entry needed</span>
+            </div>
+            <div style={s.tradeListContainer}>
+              {heldPositions.map((pos) => {
+                // Extract team name from first trade if available
+                const firstTrade = pos.trades?.[0];
+                const teamColor = firstTrade?.teamColor || '#9ca3af';
+
+                return (
+                  <div key={pos.slug} style={s.heldRow}>
+                    <div style={s.heldInfo}>
+                      <span style={{ ...s.heldTitle, color: teamColor }}>
+                        {pos.title || pos.slug}
+                      </span>
+                      <span style={{
+                        ...s.heldBadge,
+                        background: pos.heldType === 'LONG' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                        color: pos.heldType === 'LONG' ? '#22c55e' : '#ef4444',
+                      }}>
+                        {pos.heldType}
+                      </span>
+                      {pos.league && (
+                        <span style={s.heldLeague}>{pos.league}</span>
+                      )}
+                    </div>
+                    <div style={s.heldDetails}>
+                      <span style={s.heldShareInfo}>
+                        {pos.heldShares.toFixed(0)} shares @ {(pos.avgHeldPrice * 100).toFixed(0)}¢ avg
+                      </span>
+                      <span style={s.heldCost}>
+                        Cost: ${pos.heldCost.toFixed(2)}
+                      </span>
+                    </div>
+                    <div style={s.heldActions}>
+                      <button
+                        style={s.heldWinBtn}
+                        onClick={() => markResolution(pos.slug, 'WIN', pos.heldShares)}
+                      >
+                        ✓ WON (${pos.heldShares.toFixed(2)})
+                      </button>
+                      <button
+                        style={s.heldLossBtn}
+                        onClick={() => markResolution(pos.slug, 'LOSS', 0)}
+                      >
+                        ✗ LOST ($0)
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -2035,22 +2169,42 @@ const s = {
     overflow: 'hidden',
   },
   tradeItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
     padding: '10px 16px',
     borderBottom: '1px solid #1a1a1f',
   },
+  tradeRowMain: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+  },
+  tradeRowSub: {
+    marginTop: 4,
+    paddingLeft: 0,
+  },
+  tradeTeamName: {
+    fontSize: 13,
+    fontWeight: 600,
+    minWidth: 100,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
   tradeBar: {
-    height: 24,
-    borderRadius: 4,
-    minWidth: 8,
+    height: 20,
+    borderRadius: 3,
+    minWidth: 20,
+    flexShrink: 0,
   },
   tradePnlValue: {
     fontSize: 14,
-    fontWeight: 600,
-    fontFamily: '"SF Mono", monospace',
-    minWidth: 70,
+    fontWeight: 700,
+    fontFamily: '"SF Mono", Monaco, monospace',
+    minWidth: 65,
+  },
+  tradeShares: {
+    fontSize: 11,
+    color: '#6b7280',
+    minWidth: 50,
   },
   tradeEventInfo: {
     flex: 1,
@@ -2066,13 +2220,91 @@ const s = {
   tradePriceRange: {
     fontSize: 11,
     color: '#6b7280',
-    fontFamily: '"SF Mono", monospace',
+    fontFamily: '"SF Mono", Monaco, monospace',
   },
   tradeTime: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#4b5563',
     textAlign: 'right',
-    minWidth: 60,
+    marginLeft: 'auto',
+  },
+
+  // Held to Resolution Section
+  heldSection: {
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  heldRow: {
+    padding: '12px 16px',
+    borderBottom: '1px solid #1a1a1f',
+  },
+  heldInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+    flexWrap: 'wrap',
+  },
+  heldTitle: {
+    fontSize: 13,
+    fontWeight: 600,
+    flex: 1,
+    minWidth: 0,
+  },
+  heldBadge: {
+    fontSize: 10,
+    fontWeight: 600,
+    padding: '2px 8px',
+    borderRadius: 4,
+    letterSpacing: '0.05em',
+  },
+  heldLeague: {
+    fontSize: 10,
+    color: '#6b7280',
+    background: '#1a1a1f',
+    padding: '2px 6px',
+    borderRadius: 4,
+  },
+  heldDetails: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 10,
+  },
+  heldShareInfo: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontFamily: '"SF Mono", Monaco, monospace',
+  },
+  heldCost: {
+    fontSize: 11,
+    color: '#6b7280',
+  },
+  heldActions: {
+    display: 'flex',
+    gap: 8,
+  },
+  heldWinBtn: {
+    flex: 1,
+    padding: '8px 12px',
+    fontSize: 12,
+    fontWeight: 600,
+    background: 'rgba(34, 197, 94, 0.15)',
+    color: '#22c55e',
+    border: '1px solid rgba(34, 197, 94, 0.3)',
+    borderRadius: 6,
+    cursor: 'pointer',
+  },
+  heldLossBtn: {
+    flex: 1,
+    padding: '8px 12px',
+    fontSize: 12,
+    fontWeight: 600,
+    background: 'rgba(239, 68, 68, 0.15)',
+    color: '#ef4444',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
+    borderRadius: 6,
+    cursor: 'pointer',
   },
 
   // Sections
