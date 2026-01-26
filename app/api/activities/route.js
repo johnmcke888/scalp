@@ -74,7 +74,12 @@ export async function GET(request) {
     }
 
     try {
-      console.log(`Fetching activities page ${pageCount + 1}, cursor: ${cursor || 'none'}`);
+      console.log(`\n=== PAGE ${pageCount + 1} REQUEST ===`);
+      console.log(`Base endpoint: ${successEndpoint}`);
+      console.log(`Query params: [${queryParams.join(', ')}]`);
+      console.log(`Final endpoint: ${endpoint}`);
+      console.log(`Cursor: ${cursor ? cursor.slice(0, 50) + '...' : 'none'}`);
+      console.log(`==============================`);
       const data = await polymarketFetch('GET', endpoint);
       
       const activities = data?.activities || [];
