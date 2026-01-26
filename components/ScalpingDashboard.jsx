@@ -680,7 +680,7 @@ const ScalpingDashboard = ({ pin }) => {
     setActivitiesError(null);
 
     try {
-      const res = await fetch(`/api/activities?pin=${encodeURIComponent(pin)}&limit=500`);
+      const res = await fetch(`/api/activities?pin=${encodeURIComponent(pin)}`);
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || `API error: ${res.status}`);
