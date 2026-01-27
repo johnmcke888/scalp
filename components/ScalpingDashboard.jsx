@@ -13,6 +13,7 @@ import { soundManager } from '@/lib/soundManager';
 import { exportPerformanceMetrics, exportPositions } from '@/lib/csvExport';
 import { themeManager } from '@/lib/themeManager';
 import { safeParseFloat, calculateEntryPrice, formatPrice } from '@/lib/utils';
+import ScalpabilityScanner from '@/components/ScalpabilityScanner';
 
 // ===== HELPER FUNCTIONS FOR POSITION CARDS =====
 // Format duration since position opened
@@ -1537,6 +1538,9 @@ const ScalpingDashboard = ({ pin }) => {
 
         {/* ===== DESKTOP GRID LAYOUT ===== */}
         <div style={s.desktopGridMobile}>
+            {/* ===== SCALPABILITY SCANNER ===== */}
+            <ScalpabilityScanner pin={pin} />
+
             {/* ===== PERFORMANCE SUMMARY ===== */}
             {performanceMetrics && performanceMetrics.totalEvents > 0 && (
               <section style={s.performanceSection}>
