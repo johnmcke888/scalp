@@ -6,9 +6,143 @@ import { usePolymarketWebSocket } from '@/hooks/usePolymarketWebSocket';
 import { getTeamColor } from '@/lib/teamColors';
 import { transformActivities, groupTradesByEvent, calculatePerformanceMetrics, getClosingTrades } from '@/lib/activityTransformer';
 import { UnifiedHistory } from './UnifiedHistory';
+import { Sparkline as PnLSparkline } from './Sparkline';
+import TradeBar from './TradeBar';
+import PriceScaleLegend from './PriceScaleLegend';
+import { soundManager } from '@/lib/soundManager';
+import { exportPerformanceMetrics, exportPositions } from '@/lib/csvExport';
+import { themeManager } from '@/lib/themeManager';
+import { safeParseFloat, calculateEntryPrice, formatPrice } from '@/lib/utils';
+
+// ===== HELPER FUNCTIONS FOR POSITION CARDS =====
+// Format duration since position opened
+function formatDuration(isoTimestamp) {
+  if (!isoTimestamp) return null;
+  
+  const opened = new Date(isoTimestamp);
+  const now = new Date();
+  const diffMs = now - opened;
+  
+  if (isNaN(diffMs) || diffMs < 0) return null;
+  
+  const minutes = Math.floor(diffMs / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  
+  if (days > 0) return `${days}d ${hours % 24}h`;
+  if (hours > 0) return `${hours}h ${minutes % 60}m`;
+  if (minutes > 0) return `${minutes}m`;
+  return '<1m';
+}
+
+// Calculate break-even exit price accounting for Polymarket taker fees
+// Fee structure: ~1.5-2% effective fee on trades around 50¢
+// Simplified: assume 2% round-trip fee impact
+function calculateBreakEven(entryPrice, shares, cost) {
+  if (!shares || shares <= 0 || !cost) return null;
+  
+  // To break even: exitProceeds * (1 - fee) >= cost
+  // exitProceeds >= cost / (1 - fee)
+  // Per share: exitPrice >= (cost / shares) / (1 - fee)
+  const feeRate = 0.02; // 2% effective fee estimate
+  const breakEvenPrice = (cost / shares) / (1 - feeRate);
+  
+  // Clamp to valid price range
+  if (breakEvenPrice > 1) return null; // Can't break even
+  if (breakEvenPrice < 0) return 0;
+  
+  return breakEvenPrice;
+}
+
+// Visual entry→current price scale (0-100¢)
+const PriceScaleBar = ({ entryPrice, currentPrice, teamColor }) => {
+  // Clamp prices to 0-1 range
+  const entry = Math.max(0, Math.min(1, entryPrice || 0));
+  const current = Math.max(0, Math.min(1, currentPrice || 0));
+  
+  const entryPct = entry * 100;
+  const currentPct = current * 100;
+  const isProfit = current >= entry;
+  
+  return (
+    <div style={{
+      position: 'relative',
+      height: 24,
+      background: '#1a1a1f',
+      borderRadius: 4,
+      marginBottom: 8,
+      overflow: 'hidden',
+    }}>
+      {/* Scale labels */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 4,
+        fontSize: 9,
+        color: '#4b5563',
+        lineHeight: '24px',
+      }}>0¢</div>
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        right: 4,
+        fontSize: 9,
+        color: '#4b5563',
+        lineHeight: '24px',
+      }}>100¢</div>
+      
+      {/* Range fill between entry and current */}
+      <div style={{
+        position: 'absolute',
+        top: 6,
+        height: 12,
+        left: `${Math.min(entryPct, currentPct)}%`,
+        width: `${Math.abs(currentPct - entryPct)}%`,
+        background: isProfit ? 'rgba(57, 255, 20, 0.3)' : 'rgba(255, 59, 48, 0.3)',
+        borderRadius: 2,
+      }} />
+      
+      {/* Entry marker */}
+      <div style={{
+        position: 'absolute',
+        top: 4,
+        left: `${entryPct}%`,
+        transform: 'translateX(-50%)',
+        width: 2,
+        height: 16,
+        background: '#6b7280',
+        borderRadius: 1,
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: -2,
+        left: `${entryPct}%`,
+        transform: 'translateX(-50%)',
+        fontSize: 8,
+        color: '#6b7280',
+        whiteSpace: 'nowrap',
+      }}>▼</div>
+      
+      {/* Current marker */}
+      <div style={{
+        position: 'absolute',
+        top: 4,
+        left: `${currentPct}%`,
+        transform: 'translateX(-50%)',
+        width: 4,
+        height: 16,
+        background: isProfit ? '#39ff14' : '#ff3b30',
+        borderRadius: 2,
+        boxShadow: isProfit 
+          ? '0 0 8px rgba(57, 255, 20, 0.5)' 
+          : '0 0 8px rgba(255, 59, 48, 0.5)',
+      }} />
+    </div>
+  );
+};
 
 // ===== DARK MODE SPARKLINE - Always visible, optimized for performance =====
-const Sparkline = ({ data, currentValue, entryValue, color = '#39ff14', width = '100%', height = 48 }) => {
+const PositionSparkline = ({ data, currentValue, entryValue, color = '#39ff14', width = '100%', height = 48 }) => {
   if (!data || data.length < 2) {
     return (
       <div style={{
@@ -179,39 +313,6 @@ const ExitTargets = ({ entryPrice, shares, cost }) => {
   );
 };
 
-// ===== TARGET INDICATORS - Shows price targets with current status =====
-const TargetIndicators = ({ current, entry, targets = [] }) => {
-  if (!targets || targets.length === 0) return null;
-  
-  return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      gap: 6,
-      fontSize: 10,
-      marginTop: 8,
-    }}>
-      {targets.map((target, i) => {
-        const hit = current >= target.price;
-        return (
-          <span 
-            key={i}
-            style={{
-              background: hit ? 'rgba(34, 197, 94, 0.2)' : '#374151',
-              color: hit ? '#22c55e' : '#9ca3af',
-              padding: '2px 6px',
-              borderRadius: 4,
-              fontWeight: 600,
-              fontFamily: '"SF Mono", monospace',
-            }}
-          >
-            {target.label} @ {(target.price * 100).toFixed(0)}¢
-          </span>
-        );
-      })}
-    </div>
-  );
-};
 
 const ScalpingDashboard = ({ pin }) => {
   const [positions, setPositions] = useState(() => {
@@ -324,6 +425,35 @@ const ScalpingDashboard = ({ pin }) => {
   const [priceFlash, setPriceFlash] = useState({});
   const [expandedCharts, setExpandedCharts] = useState({});
   const [expandedPosition, setExpandedPosition] = useState(null);
+  const [pnlHistory, setPnlHistory] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = localStorage.getItem('scalper-pnl-history');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  // Sound settings state
+  const [soundsEnabled, setSoundsEnabled] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const saved = localStorage.getItem('scalper-sounds-enabled');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [soundVolume, setSoundVolume] = useState(() => {
+    if (typeof window === 'undefined') return 0.3;
+    const saved = localStorage.getItem('scalper-sounds-volume');
+    return saved !== null ? parseFloat(saved) : 0.3;
+  });
+
+  // Track previous trades for sound alerts
+  const [prevTradesCount, setPrevTradesCount] = useState(0);
+  const [prevTotalPnL, setPrevTotalPnL] = useState(0);
+
+  // Theme state
+  const [currentTheme, setCurrentTheme] = useState(() => {
+    return typeof window !== 'undefined' ? themeManager.getCurrentTheme() : 'dark';
+  });
+
 
   // Calculate slugs for WebSocket subscription
   const allSlugs = useMemo(() => {
@@ -524,19 +654,21 @@ const ScalpingDashboard = ({ pin }) => {
           const data = await res.json();
           if (data.positions) {
             const synced = Object.entries(data.positions).map(([slug, pos]) => {
-              const shares = Math.abs(parseFloat(pos.netPosition));
-              const cost = parseFloat(pos.cost?.value || 0);
-              const cashValue = parseFloat(pos.cashValue?.value || 0);
+              const shares = safeParseFloat(pos.netPosition, 0);
+              const cost = safeParseFloat(pos.cost, 0);
+              const cashValue = safeParseFloat(pos.cashValue, 0);
+              
+              // Use bulletproof entry price calculation
+              const entryPrice = calculateEntryPrice(pos.cost, pos.netPosition);
+              
               return {
                 id: slug,
                 market: pos.marketMetadata?.title || slug,
                 side: pos.marketMetadata?.outcome || 'Unknown',
-                shares: shares,
+                shares: Math.abs(shares),
                 cost: cost,
-                // FIX: Calculate entryPrice with NaN protection
-                entryPrice: shares > 0 ? cost / shares : 0,
-                // FIX: Calculate currentPrice with NaN protection
-                currentPrice: shares > 0 ? cashValue / shares : 0,
+                entryPrice: entryPrice, // null if calculation failed
+                currentPrice: Math.abs(shares) > 0 ? cashValue / Math.abs(shares) : 0,
                 currentValue: cashValue,
                 synced: true,
                 slug: slug,
@@ -679,19 +811,21 @@ const ScalpingDashboard = ({ pin }) => {
         }
 
         return Object.entries(data.positions).map(([slug, pos]) => {
-          const shares = Math.abs(parseFloat(pos.netPosition));
-          const cost = parseFloat(pos.cost?.value || 0);
-          const currentValue = parseFloat(pos.cashValue?.value || 0);
+          const shares = safeParseFloat(pos.netPosition, 0);
+          const cost = safeParseFloat(pos.cost, 0);
+          const currentValue = safeParseFloat(pos.cashValue, 0);
+          
+          // Use bulletproof entry price calculation
+          const entryPrice = calculateEntryPrice(pos.cost, pos.netPosition);
 
           return {
             id: slug,
             market: pos.marketMetadata?.title || slug,
             side: pos.marketMetadata?.outcome || 'Unknown',
-            shares: shares,
+            shares: Math.abs(shares),
             cost: cost,
-            // NaN protection
-            entryPrice: shares > 0 ? cost / shares : 0,
-            currentPrice: shares > 0 ? currentValue / shares : 0,
+            entryPrice: entryPrice, // null if calculation failed
+            currentPrice: Math.abs(shares) > 0 ? currentValue / Math.abs(shares) : 0,
             currentValue: currentValue,
             marketPrice: null,
             openedAt: pos.updateTime || new Date().toISOString(),
@@ -792,6 +926,97 @@ const ScalpingDashboard = ({ pin }) => {
     }
   }, [pin]);
 
+  // Track P&L changes over time for sparkline
+  useEffect(() => {
+    if (performanceMetrics?.totalRealizedPnl !== undefined) {
+      const now = Date.now();
+      const currentPnL = performanceMetrics.totalRealizedPnl;
+      
+      setPnlHistory(prev => {
+        // Only add if it's been at least 30 seconds since last entry or value changed
+        if (prev.length === 0 || 
+            now - prev[prev.length - 1].timestamp > 30000 ||
+            Math.abs(currentPnL - prev[prev.length - 1].value) > 0.01) {
+          
+          const newHistory = [...prev, { timestamp: now, value: currentPnL }];
+          
+          // Keep last 100 points to prevent memory bloat
+          return newHistory.slice(-100);
+        }
+        return prev;
+      });
+    }
+  }, [performanceMetrics?.totalRealizedPnl]);
+
+  // Save PnL history to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && pnlHistory.length > 0) {
+      localStorage.setItem('scalper-pnl-history', JSON.stringify(pnlHistory));
+    }
+  }, [pnlHistory]);
+
+  // Initialize sound manager on first user interaction
+  useEffect(() => {
+    const initAudio = async () => {
+      await soundManager.init();
+      soundManager.setEnabled(soundsEnabled);
+      soundManager.setVolume(soundVolume);
+    };
+
+    const handleInteraction = () => {
+      initAudio();
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('keydown', handleInteraction);
+    };
+
+    document.addEventListener('click', handleInteraction);
+    document.addEventListener('keydown', handleInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('keydown', handleInteraction);
+    };
+  }, [soundsEnabled, soundVolume]);
+
+  // Play sound alerts when trades complete
+  useEffect(() => {
+    if (performanceMetrics?.totalTrades && performanceMetrics?.totalRealizedPnl !== undefined) {
+      const currentTrades = performanceMetrics.totalTrades;
+      const currentPnL = performanceMetrics.totalRealizedPnl;
+
+      // Check if we have a new trade completed
+      if (prevTradesCount > 0 && currentTrades > prevTradesCount) {
+        const pnlChange = currentPnL - prevTotalPnL;
+        
+        // Play appropriate sound based on P&L change
+        if (pnlChange > 0) {
+          soundManager.playWin();
+        } else if (pnlChange < 0) {
+          soundManager.playLoss();
+        } else {
+          soundManager.playNotification();
+        }
+      }
+
+      setPrevTradesCount(currentTrades);
+      setPrevTotalPnL(currentPnL);
+    }
+  }, [performanceMetrics?.totalTrades, performanceMetrics?.totalRealizedPnl, prevTradesCount, prevTotalPnL]);
+
+  // Initialize theme manager and listen for changes
+  useEffect(() => {
+    // Set initial theme
+    themeManager.applyTheme(themeManager.getCurrentTheme());
+    setCurrentTheme(themeManager.getCurrentTheme());
+    
+    // Subscribe to theme changes
+    const unsubscribe = themeManager.subscribe((newTheme) => {
+      setCurrentTheme(newTheme);
+    });
+    
+    return unsubscribe;
+  }, []);
+
   // Handler for manually marking position resolutions
   const markResolution = (slug, outcome, payout) => {
     const updated = {
@@ -864,6 +1089,61 @@ const ScalpingDashboard = ({ pin }) => {
     const p = parseFloat(price);
     if (isNaN(p)) return;
     setPositions(positions.map(pos => pos.id === id ? { ...pos, currentPrice: p } : pos));
+  };
+
+  // Quick-sell function for partial position sales
+  const quickSell = (position, percentage) => {
+    if (!position || percentage <= 0 || percentage > 1) return;
+    
+    // Calculate shares to sell
+    const sharesToSell = Math.floor(position.shares * percentage);
+    if (sharesToSell <= 0) return;
+    
+    // Calculate current market value for the shares being sold
+    const currentPrice = position.marketPrice || position.currentPrice || 0;
+    const proceeds = sharesToSell * currentPrice;
+    const fee = proceeds * 0.02; // Assume 2% fee
+    const netProceeds = proceeds - fee;
+    
+    // Calculate P&L for the sold portion
+    const soldCost = (position.cost / position.shares) * sharesToSell;
+    const realizedPnl = netProceeds - soldCost;
+    
+    // Update the position - reduce shares and cost proportionally
+    const remainingShares = position.shares - sharesToSell;
+    const remainingCost = position.cost - soldCost;
+    
+    if (remainingShares <= 0) {
+      // If selling all shares, remove position entirely
+      setPositions(prev => prev.filter(p => p.id !== position.id));
+    } else {
+      // Update position with remaining shares
+      setPositions(prev => prev.map(p => 
+        p.id === position.id 
+          ? { 
+              ...p, 
+              shares: remainingShares,
+              cost: remainingCost
+            }
+          : p
+      ));
+    }
+    
+    // Add to history as a completed trade
+    const sellTrade = {
+      id: Date.now() + Math.random(),
+      market: position.market,
+      side: position.side,
+      shares: sharesToSell,
+      cost: soldCost,
+      proceeds: netProceeds,
+      pnl: realizedPnl,
+      timestamp: Date.now(),
+      type: 'PARTIAL_SELL',
+      percentage: Math.round(percentage * 100)
+    };
+    
+    setHistory(prev => [sellTrade, ...prev].slice(0, 50)); // Keep last 50 trades
   };
 
   const closePosition = () => {
@@ -1256,31 +1536,55 @@ const ScalpingDashboard = ({ pin }) => {
         </header>
 
         {/* ===== DESKTOP GRID LAYOUT ===== */}
-        <div style={isMobile ? s.desktopGridMobile : s.desktopGrid}>
-          {/* LEFT COLUMN - Stats & Performance */}
-          <div style={s.leftColumn}>
+        <div style={s.desktopGridMobile}>
             {/* ===== PERFORMANCE SUMMARY ===== */}
             {performanceMetrics && performanceMetrics.totalEvents > 0 && (
               <section style={s.performanceSection}>
             <div style={s.performanceHeader}>
               <span style={s.performanceTitle}>PERFORMANCE</span>
-              <button
-                style={s.refreshBtn}
-                onClick={fetchActivities}
-                disabled={activitiesLoading}
-              >
-                {activitiesLoading ? '...' : '↻ Refresh'}
-              </button>
+              <div style={s.headerControls}>
+                
+                
+                <button
+                  style={s.exportBtn}
+                  onClick={() => exportPerformanceMetrics(performanceMetrics)}
+                  disabled={!performanceMetrics || performanceMetrics.totalTrades === 0}
+                  title="Export performance metrics to CSV"
+                >
+                  ⬇ Metrics
+                </button>
+                
+                <button
+                  style={s.refreshBtn}
+                  onClick={fetchActivities}
+                  disabled={activitiesLoading}
+                >
+                  {activitiesLoading ? '...' : '↻ Refresh'}
+                </button>
+              </div>
             </div>
 
             {/* Main stats row */}
             <div style={s.performanceGrid}>
               <div style={s.performanceStat}>
                 <div style={{
-                  ...s.performanceValue,
-                  color: performanceMetrics.totalRealizedPnl >= 0 ? '#39ff14' : '#ff3b30',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
                 }}>
-                  {performanceMetrics.totalRealizedPnl >= 0 ? '+' : ''}${performanceMetrics.totalRealizedPnl.toFixed(2)}
+                  <div style={{
+                    ...s.performanceValue,
+                    color: performanceMetrics.totalRealizedPnl >= 0 ? '#39ff14' : '#ff3b30',
+                  }}>
+                    {performanceMetrics.totalRealizedPnl >= 0 ? '+' : ''}${performanceMetrics.totalRealizedPnl.toFixed(2)}
+                  </div>
+                  {pnlHistory.length >= 2 && (
+                    <PnLSparkline 
+                      data={pnlHistory.map(p => p.value)} 
+                      width={80} 
+                      height={24} 
+                    />
+                  )}
                 </div>
                 <div style={s.performanceLabel}>Total P&L</div>
               </div>
@@ -1341,10 +1645,6 @@ const ScalpingDashboard = ({ pin }) => {
             </div>
               </section>
             )}
-          </div>
-
-          {/* RIGHT COLUMN - Unified History & Positions */}
-          <div style={s.rightColumn}>
             {/* ===== UNIFIED HISTORY ===== */}
             <UnifiedHistory 
               closingTrades={closingTrades}
@@ -1359,6 +1659,14 @@ const ScalpingDashboard = ({ pin }) => {
               <section style={s.section}>
                 <div style={s.sectionHead}>
                   <span>POSITIONS ({positions.length})</span>
+                  <button
+                    style={s.exportBtn}
+                    onClick={() => exportPositions(positions)}
+                    disabled={positions.length === 0}
+                    title="Export positions to CSV"
+                  >
+                    ⬇ CSV
+                  </button>
                 </div>
                 <div style={s.posGrid}>
                   {positions.map((p) => {
@@ -1369,12 +1677,18 @@ const ScalpingDashboard = ({ pin }) => {
                       <div
                         key={p.id}
                         style={s.posCard}
-                        onClick={() => setExpandedPosition(expandedPosition === p.id ? null : p.id)}
                       >
+                        {/* Event title - the game name */}
+                        <div style={s.posEventTitle}>
+                          {p.market || 'Unknown Event'}
+                        </div>
                         <div style={s.posHeader}>
                           <span style={{ ...s.posTeam, color: teamColor }}>{p.side.toUpperCase()}</span>
                           <span style={s.posShares}>
-                            {p.shares.toFixed(0)}sh @ {(p.price * 100).toFixed(1)}¢
+                            {p.shares.toFixed(0)}sh @ {formatPrice(p.entryPrice)}
+                            {p.openedAt && (
+                              <span style={s.positionAge}> · {formatDuration(p.openedAt)}</span>
+                            )}
                           </span>
                         </div>
                         
@@ -1385,6 +1699,13 @@ const ScalpingDashboard = ({ pin }) => {
                           <PriceChangeIndicator change={p.priceDelta || 0} />
                         </div>
                         
+                        {/* Entry → Current visual scale */}
+                        <PriceScaleBar 
+                          entryPrice={p.entryPrice} 
+                          currentPrice={p.currentPrice} 
+                          teamColor={teamColor}
+                        />
+                        
                         <div style={s.posPnl}>
                           <span style={{
                             color: (p.unrealizedPnl || 0) >= 0 ? '#39ff14' : '#ff3b30',
@@ -1394,42 +1715,124 @@ const ScalpingDashboard = ({ pin }) => {
                           </span>
                         </div>
 
+                        {/* Break-even price indicator */}
+                        {(() => {
+                          const breakEven = calculateBreakEven(p.entryPrice, p.shares, p.cost);
+                          if (breakEven === null) return null;
+                          
+                          const currentAboveBreakEven = p.currentPrice >= breakEven;
+                          return (
+                            <div style={{
+                              fontSize: 11,
+                              color: currentAboveBreakEven ? '#39ff14' : '#f59e0b',
+                              textAlign: 'center',
+                              marginTop: 4,
+                              fontFamily: '"SF Mono", monospace',
+                            }}>
+                              {currentAboveBreakEven ? '✓' : '⚠'} Break-even: {(breakEven * 100).toFixed(1)}¢
+                            </div>
+                          );
+                        })()}
+
+                        {/* Portfolio allocation */}
+                        {(() => {
+                          // Total portfolio = cash + all position values
+                          const totalPositionValue = positions.reduce((sum, pos) => {
+                            return sum + (pos.currentValue || pos.cost || 0);
+                          }, 0);
+                          const totalPortfolio = (balance || 0) + totalPositionValue;
+                          
+                          if (totalPortfolio <= 0) return null;
+                          
+                          const positionValue = p.currentValue || p.cost || 0;
+                          const positionPct = (positionValue / totalPortfolio) * 100;
+                          const riskLevel = positionPct > 25 ? '#ff3b30' : positionPct > 15 ? '#f59e0b' : '#6b7280';
+                          
+                          return (
+                            <div style={{
+                              fontSize: 10,
+                              color: riskLevel,
+                              textAlign: 'center',
+                              marginTop: 4,
+                            }}>
+                              {positionPct.toFixed(1)}% of portfolio
+                            </div>
+                          );
+                        })()}
+
+                        {/* Quick sell button */}
+                        <button
+                          style={s.quickSellBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setClosing(p);
+                            setCloseForm({ proceeds: (p.currentValue || p.cost || 0).toFixed(2), fee: '' });
+                          }}
+                        >
+                          SELL @ {(p.currentPrice * 100).toFixed(0)}¢ → ${(p.currentValue || p.cost || 0).toFixed(2)}
+                        </button>
+
                         {sidePriceHistory.length > 1 && (
                           <div style={s.posSparkline}>
-                            <Sparkline
+                            <PositionSparkline
                               data={sidePriceHistory}
                               currentValue={p.currentPrice}
-                              entryValue={p.price}
+                              entryValue={p.entryPrice}
                               color={teamColor}
                               height={24}
                             />
                           </div>
                         )}
 
-                        <TargetIndicators
-                          current={p.currentPrice}
-                          entry={p.price}
-                          targets={[
-                            { price: p.price * 1.05, label: '+5%' },
-                            { price: p.price * 1.10, label: '+10%' },
-                            { price: p.price * 1.20, label: '+20%' }
-                          ]}
-                        />
 
                         {expandedPosition === p.id && (
                           <div style={s.posExpanded}>
                             <div style={s.posChart}>
                               {renderChart(p.marketSlug, p.side)}
                             </div>
-                            <button
-                              style={s.sellBtn}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setClosing(p);
-                              }}
-                            >
-                              💰 Cash Out
-                            </button>
+                            {/* Quick-sell buttons for different percentages */}
+                            <div style={s.quickSellRow}>
+                              <button
+                                style={s.quickSellBtn}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  quickSell(p, 0.25);
+                                }}
+                                title="Sell 25% of position"
+                              >
+                                25%
+                              </button>
+                              <button
+                                style={s.quickSellBtn}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  quickSell(p, 0.5);
+                                }}
+                                title="Sell 50% of position"
+                              >
+                                50%
+                              </button>
+                              <button
+                                style={s.quickSellBtn}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  quickSell(p, 0.75);
+                                }}
+                                title="Sell 75% of position"
+                              >
+                                75%
+                              </button>
+                              <button
+                                style={s.sellBtn}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setClosing(p);
+                                }}
+                                title="Cash out full position"
+                              >
+                                💰 All
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1438,151 +1841,9 @@ const ScalpingDashboard = ({ pin }) => {
                 </div>
               </section>
             )}
-          </div>
         </div>
 
-        {/* ===== RECENT TRADES - Visual P&L bars ===== */}
-        {closingTrades.length > 0 && (
-          <section style={s.tradeListSection}>
-            <div style={s.tradeListHeader}>
-              <span style={s.tradeListTitle}>RECENT TRADES</span>
-              <span style={{ fontSize: 10, color: '#4b5563' }}>{closingTrades.length} closes</span>
-            </div>
-            <div style={s.tradeListContainer}>
-              {closingTrades.slice(0, 20).map((trade, idx) => {
-                const pnl = trade.realizedPnl || 0;
-                const isWin = pnl >= 0;
-                const entryPrice = trade.originalPrice || 0;
-                const exitPrice = trade.price || 0;
-                const isShort = trade.intent?.includes('SHORT');
-                const teamColor = trade.teamColor || '#9ca3af';
 
-                // Bar width: log scale, min 8px, max 120px
-                const maxPnl = Math.max(...closingTrades.slice(0, 20).map(t => Math.abs(t.realizedPnl || 0)), 1);
-                const barWidth = Math.max(8, Math.min(120, (Math.log(Math.abs(pnl) + 1) / Math.log(maxPnl + 1)) * 120));
-
-                const timeStr = trade.timestamp
-                  ? new Date(trade.timestamp).toLocaleTimeString('en-US', {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true
-                    }).replace(' ', '')  // "10:15PM" not "10:15 PM"
-                  : '--:--';
-
-                return (
-                  <div key={trade.id || idx} style={s.tradeRowCompact}>
-                    {/* Team name + short indicator */}
-                    <div style={s.tradeTeamCell}>
-                      <span style={{ color: teamColor, fontWeight: 600 }}>
-                        {trade.team}
-                      </span>
-                      {isShort && <span style={s.shortBadge}>▼</span>}
-                    </div>
-
-                    {/* Entry → Exit price */}
-                    <div style={s.tradePriceCell}>
-                      {(entryPrice * 100).toFixed(0)}→{(exitPrice * 100).toFixed(0)}¢
-                    </div>
-
-                    {/* P&L Bar - GREEN for win, RED for loss */}
-                    <div style={s.tradeBarCell}>
-                      <div style={{
-                        width: barWidth,
-                        height: 16,
-                        borderRadius: 2,
-                        backgroundColor: isWin ? '#22c55e' : '#ef4444',
-                      }} />
-                    </div>
-
-                    {/* P&L value */}
-                    <div style={{
-                      ...s.tradePnlCell,
-                      color: isWin ? '#22c55e' : '#ef4444',
-                    }}>
-                      {isWin ? '+' : ''}${pnl.toFixed(2)}
-                    </div>
-
-                    {/* Shares */}
-                    <div style={s.tradeSharesCell}>
-                      {trade.shares.toFixed(0)}sh
-                    </div>
-
-                    {/* Time */}
-                    <div style={s.tradeTimeCell}>
-                      {timeStr}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* ===== POSITION RESOLUTIONS - Auto-populated from API ===== */}
-        {resolutionTrades.length > 0 && (
-          <section style={s.heldSection}>
-            <div style={s.tradeListHeader}>
-              <span style={s.tradeListTitle}>POSITION RESOLUTIONS ({resolutionTrades.length})</span>
-              <span style={{ fontSize: 10, color: '#10b981' }}>✓ auto-populated</span>
-            </div>
-            <div style={s.tradeListContainer}>
-              {resolutionTrades
-                .sort((a, b) => b.timestamp - a.timestamp)
-                .map((resolution) => {
-                  const avgPrice = resolution.originalPrice || 0;
-                  const timeStr = new Date(resolution.timestamp).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true,
-                  }).replace(/(\d+:\d+) ([AP]M)/, '$1$2').toLowerCase().replace('am', 'a').replace('pm', 'p');
-
-                  return (
-                    <div key={resolution.id} style={s.compactResolutionCard}>
-                      {/* Line 1: Match info + League + Result + Time */}
-                      <div style={s.resolutionTopLine}>
-                        <span style={s.resolutionTitle}>
-                          {resolution.title || resolution.marketSlug}
-                        </span>
-                        <div style={s.resolutionMeta}>
-                          {resolution.league && (
-                            <span style={s.resolutionLeague}>{resolution.league}</span>
-                          )}
-                          <span style={{
-                            ...s.resolutionResult,
-                            color: resolution.won ? '#22c55e' : '#ef4444',
-                          }}>
-                            {resolution.won ? 'WON' : 'LOST'}
-                          </span>
-                          <span style={s.resolutionTime}>
-                            {timeStr}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {/* Line 2: Team + Shares @ Price → Cost → Payout + P&L */}
-                      <div style={s.resolutionBottomLine}>
-                        <span style={{ color: resolution.teamColor || '#9ca3af', fontWeight: 600 }}>
-                          {resolution.team}
-                        </span>
-                        <span style={s.resolutionDetails}>
-                          {resolution.shares.toFixed(0)}sh @ {(avgPrice * 100).toFixed(0)}¢ → ${resolution.costBasis?.toFixed(2)} → ${resolution.payout?.toFixed(2)}
-                        </span>
-                        <span style={{ 
-                          color: resolution.realizedPnl >= 0 ? '#22c55e' : '#ef4444',
-                          fontWeight: 600,
-                          fontSize: 13,
-                        }}>
-                          {resolution.realizedPnl >= 0 ? '+' : ''}${resolution.realizedPnl?.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </section>
-        )}
 
 
         {/* ===== RECENTLY CLOSED ===== */}
@@ -1682,202 +1943,7 @@ const ScalpingDashboard = ({ pin }) => {
           </section>
         )}
 
-        {/* ===== HISTORY ===== */}
-        <section style={s.section}>
-          <div style={s.sectionHead}>
-            <span>HISTORY</span>
-            <span style={s.posCount}>{history.length}</span>
-          </div>
 
-          {history.length === 0 ? (
-            <div style={s.empty}>No closed trades</div>
-          ) : (
-            <div style={s.positionGrid}>
-              {history.map(t => {
-                const event = eventData[t.id];
-                const isEnded = event?.ended;
-
-                return (
-                  <div key={t.id} style={s.historyCard}>
-                    <div style={s.historyHeader}>
-                      <span style={s.historyName}>{t.market}</span>
-                      {isEnded && <span style={s.endedTag}>FINAL</span>}
-                    </div>
-                    <div style={s.historySubtitle}>{t.side} · was {t.shares} shares</div>
-
-                    {event?.score && (
-                      <div style={s.scoreRow}>
-                        <span style={s.scoreText}>{event.score}</span>
-                        {isEnded && <span style={s.periodText}>FINAL</span>}
-                      </div>
-                    )}
-
-                    <div style={{
-                      ...s.historyPnL,
-                      color: t.realizedPnL >= 0 ? '#39ff14' : '#ff3b30',
-                    }}>
-                      Cashed out: {t.realizedPnL >= 0 ? '+' : ''}${fmt(t.realizedPnL)} ({pct(t.realizedPnL, t.cost)}%)
-                    </div>
-
-                    {t.resolved && (
-                      <div style={{ ...s.historyHindsight, color: t.hindsightDiff <= 0 ? '#39ff14' : '#ff3b30' }}>
-                        {t.won
-                          ? `If you held: +$${fmt(t.shares)} (${t.side} won)`
-                          : `If you held: $0.00 (${t.side} lost)`}
-                      </div>
-                    )}
-
-                    {!t.resolved && (
-                      <div style={s.resolveSection}>
-                        <span style={s.resolveLabel}>How did it end?</span>
-                        <div style={s.resolveBtns}>
-                          <button style={s.resolveWon} onClick={() => markResolved(t.id, true)}>{t.side} won</button>
-                          <button style={s.resolveLost} onClick={() => markResolved(t.id, false)}>{t.side} lost</button>
-                        </div>
-                      </div>
-                    )}
-
-                    {expandedCharts[`history-${t.id}`] && (
-                      <div style={s.chartsStack}>
-                        <PriceChart slug={t.id} highlightSide={t.side} closedAtTime={t.closedAtTime} />
-                        {scoreHistory[t.id]?.length >= 2 && (
-                          <ScoreChart slug={t.id} closedAtTime={t.closedAtTime} />
-                        )}
-                      </div>
-                    )}
-
-                    <button style={s.expandBtn} onClick={() => toggleChart(`history-${t.id}`)}>
-                      {expandedCharts[`history-${t.id}`] ? '− hide charts' : '+ show charts'}
-                    </button>
-
-                    <div style={s.historyFooter}>
-                      cost ${fmt(t.cost)} · proceeds ${fmt(t.netProceeds)}
-                      {t.fee > 0 && ` · fee ${fmt(t.fee)}`}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* ===== TRADE HISTORY ===== */}
-        <section style={s.tradeHistorySection}>
-          <div style={s.tradeHistoryHeader}>
-            <span style={s.tradeHistoryTitle}>
-              TRADE HISTORY ({Object.keys(tradeHistory).length} events)
-            </span>
-            <button
-              style={s.refreshBtn}
-              onClick={fetchActivities}
-              disabled={activitiesLoading}
-            >
-              {activitiesLoading ? '...' : '↻ Refresh'}
-            </button>
-          </div>
-
-          {activitiesError && (
-            <div style={s.syncError}>{activitiesError}</div>
-          )}
-
-          {Object.keys(tradeHistory).length === 0 && !activitiesLoading ? (
-            <div style={s.empty}>No trade history</div>
-          ) : (
-            <div style={s.positionGrid}>
-              {Object.values(tradeHistory)
-                .sort((a, b) => b.lastTradeTime - a.lastTradeTime)
-                .map(event => {
-                  const isExpanded = expandedEvents[event.slug];
-                  // Use realizedPnl if available, otherwise use netPnl
-                  const displayPnl = event.realizedPnl !== 0 ? event.realizedPnl : event.netPnl;
-
-                  return (
-                    <div key={event.slug} style={s.eventCard}>
-                      <div style={s.eventHeader}>
-                        <div>
-                          <div style={s.eventTitle}>{event.title || event.slug}</div>
-                        </div>
-                        <div style={s.eventMeta}>
-                          {event.league && (
-                            <span style={s.leagueBadge}>{event.league}</span>
-                          )}
-                          <span style={{
-                            ...s.statusBadge,
-                            background: event.isComplete ? 'rgba(57, 255, 20, 0.15)' : 'rgba(251, 191, 36, 0.15)',
-                            color: event.isComplete ? '#39ff14' : '#fbbf24',
-                          }}>
-                            {event.isComplete ? 'CLOSED' : 'OPEN'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div style={{
-                        ...s.eventPnl,
-                        color: displayPnl >= 0 ? '#39ff14' : '#ff3b30',
-                      }}>
-                        {displayPnl >= 0 ? '+' : ''}${displayPnl.toFixed(2)}
-                      </div>
-
-                      <div style={s.eventStats}>
-                        {event.trades.length} trades · Avg buy: {(event.avgBuyPrice * 100).toFixed(1)}¢ → Avg sell: {(event.avgSellPrice * 100).toFixed(1)}¢
-                      </div>
-
-                      <button
-                        style={s.expandBtn}
-                        onClick={() => setExpandedEvents(prev => ({
-                          ...prev,
-                          [event.slug]: !prev[event.slug]
-                        }))}
-                      >
-                        {isExpanded ? '▲ Hide trades' : '▼ Show trades'}
-                      </button>
-
-                      {isExpanded && (
-                        <div style={s.tradesList}>
-                          {event.trades.map((trade, idx) => {
-                            const isBuy = trade.side === 'BUY';
-                            const tradeTime = new Date(trade.timestamp);
-                            const timeStr = tradeTime.toLocaleTimeString([], {
-                              hour: 'numeric',
-                              minute: '2-digit',
-                            });
-
-                            return (
-                              <div key={trade.id || idx} style={s.tradeRow}>
-                                <div style={{ display: 'flex', alignItems: 'center' }}>
-                                  <span style={{
-                                    ...s.tradeSideBadge,
-                                    background: isBuy ? 'rgba(59, 130, 246, 0.15)' : 'rgba(168, 85, 247, 0.15)',
-                                    color: isBuy ? '#3b82f6' : '#a855f7',
-                                  }}>
-                                    {trade.side}
-                                  </span>
-                                  <span style={{ fontFamily: '"SF Mono", monospace' }}>
-                                    {trade.shares.toFixed(0)} @ {(trade.price * 100).toFixed(1)}¢
-                                  </span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <span style={{ color: '#6b7280' }}>{timeStr}</span>
-                                  {trade.realizedPnl !== null && (
-                                    <span style={{
-                                      ...s.tradePnl,
-                                      color: trade.realizedPnl >= 0 ? '#39ff14' : '#ff3b30',
-                                    }}>
-                                      ({trade.realizedPnl >= 0 ? '+' : ''}${trade.realizedPnl.toFixed(2)})
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-            </div>
-          )}
-        </section>
 
         {/* Spacer for sticky footer */}
         <div style={{ height: 100 }} />
@@ -1938,52 +2004,6 @@ const ScalpingDashboard = ({ pin }) => {
           </div>
         );
       })()}
-
-      {/* ===== STICKY FOOTER - Quick Trade Bar ===== */}
-      <div style={s.stickyFooter} className="frosted-glass">
-        {!showInputForm ? (
-          <button style={s.addBtn} onClick={() => setShowInputForm(true)}>
-            + Log Buy
-          </button>
-        ) : (
-          <div style={s.inputForm}>
-            <div style={s.inputRow}>
-              <input
-                style={s.input}
-                placeholder="Market"
-                value={newPos.market}
-                onChange={e => setNewPos({ ...newPos, market: e.target.value })}
-              />
-              <input
-                style={{ ...s.input, maxWidth: 100 }}
-                placeholder="Side"
-                value={newPos.side}
-                onChange={e => setNewPos({ ...newPos, side: e.target.value })}
-              />
-            </div>
-            <div style={s.inputRow}>
-              <input
-                style={{ ...s.input, maxWidth: 100 }}
-                placeholder="Cost $"
-                type="number"
-                step="0.01"
-                value={newPos.cost}
-                onChange={e => setNewPos({ ...newPos, cost: e.target.value })}
-              />
-              <input
-                style={{ ...s.input, maxWidth: 80 }}
-                placeholder="Shares"
-                type="number"
-                step="1"
-                value={newPos.shares}
-                onChange={e => setNewPos({ ...newPos, shares: e.target.value })}
-              />
-              <button style={s.submitBtn} onClick={addPosition}>+</button>
-              <button style={s.cancelInputBtn} onClick={() => setShowInputForm(false)}>×</button>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 };
@@ -2009,24 +2029,9 @@ const s = {
     padding: '0 16px',
   },
   
-  // Desktop Grid Layout
-  desktopGrid: {
-    display: 'grid',
-    gridTemplateColumns: '320px 1fr',
-    gap: '24px',
-  },
+  // Single Column Layout (all screen sizes)
   desktopGridMobile: {
     display: 'block',
-  },
-  leftColumn: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-  },
-  rightColumn: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
   },
 
   // Header
@@ -2359,6 +2364,7 @@ const s = {
   sectionHead: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 8,
     fontSize: 11,
     fontWeight: 600,
@@ -2367,6 +2373,37 @@ const s = {
     marginBottom: 16,
     paddingBottom: 8,
     borderBottom: '1px solid #222228',
+  },
+  exportBtn: {
+    background: '#10b981',
+    border: '1px solid #059669',
+    color: '#f9fafb',
+    padding: '2px 8px',
+    borderRadius: 4,
+    cursor: 'pointer',
+    fontSize: 10,
+    lineHeight: 1,
+    fontWeight: 500,
+  },
+  calculatorBtn: {
+    background: '#3b82f6',
+    border: '1px solid #2563eb',
+    color: '#f9fafb',
+    padding: '2px 8px',
+    borderRadius: 4,
+    cursor: 'pointer',
+    fontSize: 10,
+    lineHeight: 1,
+    fontWeight: 500,
+  },
+  themeBtn: {
+    border: '1px solid #4b5563',
+    padding: '4px 8px',
+    borderRadius: 4,
+    cursor: 'pointer',
+    fontSize: 14,
+    lineHeight: 1,
+    transition: 'background-color 0.2s, color 0.2s',
   },
   posCount: {
     background: '#1a1a1f',
@@ -2493,7 +2530,31 @@ const s = {
     border: '1px solid #222228',
     borderRadius: 12,
     padding: 16,
+    transition: 'all 0.15s ease',
+  },
+  posEventTitle: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginBottom: 4,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  positionAge: {
+    color: '#4b5563',
+  },
+  quickSellBtn: {
+    width: '100%',
+    marginTop: 12,
+    padding: '12px 16px',
+    background: 'rgba(168, 85, 247, 0.15)',
+    border: '1px solid rgba(168, 85, 247, 0.4)',
+    color: '#a855f7',
+    fontSize: 12,
+    fontWeight: 600,
+    fontFamily: '"SF Mono", monospace',
     cursor: 'pointer',
+    borderRadius: 6,
     transition: 'all 0.15s ease',
   },
   posTopRow: {
@@ -3121,6 +3182,72 @@ const s = {
   tradePnl: {
     fontSize: 11,
     fontFamily: '"SF Mono", monospace',
+  },
+  
+  // Sound controls
+  headerControls: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+  },
+  soundControls: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+  },
+  soundBtn: {
+    background: 'none',
+    border: '1px solid #374151',
+    color: '#f9fafb',
+    padding: '4px 8px',
+    borderRadius: 4,
+    cursor: 'pointer',
+    fontSize: 12,
+    lineHeight: 1,
+    transition: 'background-color 0.2s',
+  },
+  volumeSlider: {
+    width: 60,
+    height: 16,
+    appearance: 'none',
+    background: '#374151',
+    borderRadius: 8,
+    outline: 'none',
+    cursor: 'pointer',
+  },
+  
+  // Quick-sell button styles
+  quickSellRow: {
+    display: 'flex',
+    gap: 6,
+    marginTop: 12,
+    padding: '0 4px',
+  },
+  quickSellBtn: {
+    flex: 1,
+    padding: '6px 8px',
+    border: '1px solid #374151',
+    background: '#1f2937',
+    color: '#9ca3af',
+    fontSize: 11,
+    fontWeight: 600,
+    cursor: 'pointer',
+    borderRadius: 4,
+    transition: 'all 0.15s ease',
+    textAlign: 'center',
+  },
+  sellBtn: {
+    flex: 1.2,
+    padding: '6px 8px',
+    border: '1px solid #059669',
+    background: 'rgba(16, 185, 129, 0.15)',
+    color: '#10b981',
+    fontSize: 11,
+    fontWeight: 600,
+    cursor: 'pointer',
+    borderRadius: 4,
+    transition: 'all 0.15s ease',
+    textAlign: 'center',
   },
 };
 

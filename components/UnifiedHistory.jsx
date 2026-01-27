@@ -1,4 +1,8 @@
+import { useState } from 'react';
 import { PriceBar } from './PriceBar';
+import TradeBar from './TradeBar';
+import PriceScaleLegend from './PriceScaleLegend';
+import { exportUnifiedTradeHistory } from '@/lib/csvExport';
 
 /**
  * UnifiedHistory Component - Merges all trade types into a single chronological view
@@ -11,28 +15,14 @@ export const UnifiedHistory = ({
   onRefresh,
   refreshing = false 
 }) => {
-  // Combine all trades into unified format
+  
+  // Combine all trades into unified format, avoiding duplicates
   const unifiedTrades = [];
+  const seenMarketSlugs = new Set(); // Track markets to avoid HELD duplicates
   
-  // Add recent closing trades (scalps)
-  closingTrades.forEach(trade => {
-    unifiedTrades.push({
-      id: trade.id,
-      timestamp: trade.timestamp,
-      team: trade.team,
-      league: trade.league,
-      teamColor: trade.teamColor,
-      entryPrice: (trade.originalPrice || 0) * 100, // Convert to cents
-      exitPrice: trade.price * 100, // Convert to cents
-      profit: trade.realizedPnl || 0,
-      shares: trade.shares,
-      type: 'SCALP',
-      isShort: trade.intent?.includes('SHORT'),
-    });
-  });
-  
-  // Add resolution trades (held to expiry)
+  // PRIORITY 1: Add resolution trades (held to expiry) - these are definitive outcomes
   resolutionTrades.forEach(trade => {
+    const slug = trade.marketSlug || trade.id;
     unifiedTrades.push({
       id: trade.id,
       timestamp: trade.timestamp,
@@ -43,14 +33,16 @@ export const UnifiedHistory = ({
       exitPrice: trade.won ? 100 : 0, // 100¢ if won, 0¢ if lost
       profit: trade.realizedPnl || 0,
       shares: trade.shares,
-      type: 'RESOLUTION',
-      isShort: false,
+      // Removed type field - clean display without suffixes
+      marketSlug: slug,
     });
+    // Track this market so we don't add duplicate scalp entries
+    if (slug) seenMarketSlugs.add(slug);
   });
   
-  // Add cashed out positions from trade history
+  // PRIORITY 2: Add cashed out positions from trade history (grouped complete events)
   Object.values(tradeHistory).forEach(event => {
-    if (event.isComplete && event.totalSells > 0) {
+    if (event.isComplete && event.totalSells > 0 && !seenMarketSlugs.has(event.slug)) {
       // Find the latest trade for this event
       const latestTrade = event.trades[event.trades.length - 1];
       if (latestTrade && latestTrade.side === 'SELL') {
@@ -64,18 +56,40 @@ export const UnifiedHistory = ({
           exitPrice: event.avgSellPrice * 100, // Convert to cents
           profit: event.realizedPnl || event.netPnl || 0,
           shares: event.totalBuyShares,
-          type: 'CASHOUT',
-          isShort: false,
+          // Removed type field - clean display without suffixes
+          marketSlug: event.slug,
         });
+        // Track this market so we don't add individual scalp entries
+        seenMarketSlugs.add(event.slug);
       }
     }
   });
   
-  // Sort by timestamp (most recent first)
-  unifiedTrades.sort((a, b) => b.timestamp - a.timestamp);
+  // PRIORITY 3: Add individual closing trades (scalps) - only if not already covered above
+  closingTrades.forEach(trade => {
+    const slug = trade.marketSlug || trade.id;
+    if (!seenMarketSlugs.has(slug)) {
+      unifiedTrades.push({
+        id: trade.id,
+        timestamp: trade.timestamp,
+        team: trade.team,
+        league: trade.league,
+        teamColor: trade.teamColor,
+        entryPrice: (trade.originalPrice || 0) * 100, // Convert to cents
+        exitPrice: trade.price * 100, // Convert to cents
+        profit: trade.realizedPnl || 0,
+        shares: trade.shares,
+        // Removed type field - clean display without suffixes
+        marketSlug: slug,
+      });
+    }
+  });
   
-  // Take only the most recent 20 trades
-  const recentUnified = unifiedTrades.slice(0, 20);
+  // Sort by time (newest first)
+  const filteredTrades = unifiedTrades.sort((a, b) => b.timestamp - a.timestamp);
+  
+  // Take only the most recent/filtered 20 trades
+  const recentUnified = filteredTrades.slice(0, 20);
   
   if (recentUnified.length === 0) {
     return null;
@@ -86,7 +100,15 @@ export const UnifiedHistory = ({
       <div style={styles.header}>
         <span style={styles.title}>UNIFIED HISTORY</span>
         <div style={styles.headerRight}>
-          <span style={styles.subtitle}>{recentUnified.length} recent</span>
+          <span style={styles.subtitle}>{recentUnified.length} of {unifiedTrades.length}</span>
+          <button
+            onClick={() => exportUnifiedTradeHistory(unifiedTrades)}
+            style={styles.exportBtn}
+            title="Export all trades to CSV"
+            disabled={unifiedTrades.length === 0}
+          >
+            ⬇ CSV
+          </button>
           <button 
             onClick={onRefresh}
             disabled={refreshing}
@@ -97,75 +119,24 @@ export const UnifiedHistory = ({
           </button>
         </div>
       </div>
+
+      
+      {/* Price scale legend */}
+      <PriceScaleLegend />
       
       <div style={styles.container}>
         {recentUnified.map((trade) => {
-          const timeStr = new Date(trade.timestamp).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-          });
-          
-          const typeColor = {
-            SCALP: '#06b6d4',     // cyan
-            RESOLUTION: '#8b5cf6', // purple  
-            CASHOUT: '#f59e0b',    // amber
-          }[trade.type];
-          
-          const typeBadge = {
-            SCALP: '',
-            RESOLUTION: ' HELD',
-            CASHOUT: ' CASH',
-          }[trade.type];
+          // Clean team names without any suffixes (removed HELD/CASH badges per user requirement)
+          const teamDisplayName = trade.team;
           
           return (
-            <div key={trade.id} style={styles.row}>
-              {/* Line 1: Team + Price Movement + P&L + Time */}
-              <div style={styles.topLine}>
-                <span style={{ 
-                  ...styles.teamName, 
-                  color: trade.teamColor || '#9ca3af' 
-                }}>
-                  {trade.team}
-                  {trade.isShort && <span style={styles.shortBadge}>▼</span>}
-                  <span style={{ ...styles.typeBadge, color: typeColor }}>
-                    {typeBadge}
-                  </span>
-                </span>
-                
-                <div style={styles.priceMovement}>
-                  {trade.entryPrice.toFixed(0)}¢ 
-                  <span style={styles.arrow}>▶</span>
-                  {trade.exitPrice.toFixed(0)}¢
-                </div>
-                
-                <div style={{
-                  ...styles.profit,
-                  color: trade.profit >= 0 ? '#22c55e' : '#ef4444',
-                }}>
-                  {trade.profit >= 0 ? '+' : ''}${trade.profit.toFixed(2)}
-                </div>
-                
-                <div style={styles.time}>
-                  {timeStr}
-                </div>
-              </div>
-              
-              {/* Line 2: Price Bar + Shares */}
-              <div style={styles.bottomLine}>
-                <PriceBar
-                  entry={trade.entryPrice}
-                  exit={trade.exitPrice}
-                  profit={trade.profit}
-                  className="flex-1"
-                />
-                <div style={styles.shares}>
-                  {trade.shares.toFixed(0)}sh
-                </div>
-              </div>
-            </div>
+            <TradeBar
+              key={trade.id}
+              teamName={teamDisplayName}
+              buyPrice={trade.entryPrice / 100} // Convert cents to 0-1 scale
+              sellPrice={trade.exitPrice / 100} // Convert cents to 0-1 scale
+              pnl={trade.profit}
+            />
           );
         })}
       </div>
@@ -209,6 +180,17 @@ const styles = {
     cursor: 'pointer',
     fontSize: 12,
     lineHeight: 1,
+  },
+  exportBtn: {
+    background: '#10b981',
+    border: '1px solid #059669',
+    color: '#f9fafb',
+    padding: '2px 8px',
+    borderRadius: 4,
+    cursor: 'pointer',
+    fontSize: 10,
+    lineHeight: 1,
+    marginRight: 6,
   },
   container: {
     display: 'flex',
@@ -278,6 +260,48 @@ const styles = {
     color: '#9ca3af',
     minWidth: 40,
     textAlign: 'right',
+  },
+  
+  // Filter and sort controls
+  controls: {
+    display: 'flex',
+    gap: 16,
+    marginBottom: 12,
+    padding: '8px 0',
+    borderBottom: '1px solid #374151',
+  },
+  controlGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+  },
+  controlLabel: {
+    fontSize: 10,
+    color: '#6b7280',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+  select: {
+    background: '#1f2937',
+    border: '1px solid #374151',
+    color: '#f9fafb',
+    padding: '4px 8px',
+    borderRadius: 4,
+    fontSize: 11,
+    outline: 'none',
+    cursor: 'pointer',
+  },
+  sortOrderBtn: {
+    background: '#374151',
+    border: '1px solid #4b5563',
+    color: '#f9fafb',
+    padding: '4px 6px',
+    borderRadius: 4,
+    cursor: 'pointer',
+    fontSize: 10,
+    lineHeight: 1,
+    marginLeft: 4,
   },
 };
 
