@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "update-teams": "node scripts/update-team-stats.js"
   },
   "dependencies": {
     "@noble/ed25519": "^2.0.0",

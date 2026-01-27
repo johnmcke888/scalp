@@ -1,0 +1,4544 @@
+{
+  "lastUpdated": "2026-01-27T10:44:49.997Z",
+  "leagues": {
+    "nba": [
+      {
+        "id": "1",
+        "name": "Atlanta Hawks",
+        "shortName": "Hawks",
+        "abbreviation": "ATL",
+        "normalizedName": "atlanta hawks",
+        "location": "Atlanta",
+        "nickname": "Hawks",
+        "color": "c8102e",
+        "alternateColor": "fdb927",
+        "league": "NBA",
+        "record": {
+          "wins": 23,
+          "losses": 25,
+          "ties": 0,
+          "winPct": 0.47916666
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.678Z"
+      },
+      {
+        "id": "2",
+        "name": "Boston Celtics",
+        "shortName": "Celtics",
+        "abbreviation": "BOS",
+        "normalizedName": "boston celtics",
+        "location": "Boston",
+        "nickname": "Celtics",
+        "color": "008348",
+        "alternateColor": "ffffff",
+        "league": "NBA",
+        "record": {
+          "wins": 29,
+          "losses": 17,
+          "ties": 0,
+          "winPct": 0.6304348
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "17",
+        "name": "Brooklyn Nets",
+        "shortName": "Nets",
+        "abbreviation": "BKN",
+        "normalizedName": "brooklyn nets",
+        "location": "Brooklyn",
+        "nickname": "Nets",
+        "color": "000000",
+        "alternateColor": "ffffff",
+        "league": "NBA",
+        "record": {
+          "wins": 12,
+          "losses": 32,
+          "ties": 0,
+          "winPct": 0.27272728
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "30",
+        "name": "Charlotte Hornets",
+        "shortName": "Hornets",
+        "abbreviation": "CHA",
+        "normalizedName": "charlotte hornets",
+        "location": "Charlotte",
+        "nickname": "Hornets",
+        "color": "008ca8",
+        "alternateColor": "1d1060",
+        "league": "NBA",
+        "record": {
+          "wins": 19,
+          "losses": 28,
+          "ties": 0,
+          "winPct": 0.40425533
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "4",
+        "name": "Chicago Bulls",
+        "shortName": "Bulls",
+        "abbreviation": "CHI",
+        "normalizedName": "chicago bulls",
+        "location": "Chicago",
+        "nickname": "Bulls",
+        "color": "ce1141",
+        "alternateColor": "000000",
+        "league": "NBA",
+        "record": {
+          "wins": 23,
+          "losses": 23,
+          "ties": 0,
+          "winPct": 0.5
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "5",
+        "name": "Cleveland Cavaliers",
+        "shortName": "Cavaliers",
+        "abbreviation": "CLE",
+        "normalizedName": "cleveland cavaliers",
+        "location": "Cleveland",
+        "nickname": "Cavaliers",
+        "color": "860038",
+        "alternateColor": "bc945c",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "6",
+        "name": "Dallas Mavericks",
+        "shortName": "Mavericks",
+        "abbreviation": "DAL",
+        "normalizedName": "dallas mavericks",
+        "location": "Dallas",
+        "nickname": "Mavericks",
+        "color": "0064b1",
+        "alternateColor": "bbc4ca",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "7",
+        "name": "Denver Nuggets",
+        "shortName": "Nuggets",
+        "abbreviation": "DEN",
+        "normalizedName": "denver nuggets",
+        "location": "Denver",
+        "nickname": "Nuggets",
+        "color": "0e2240",
+        "alternateColor": "fec524",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "8",
+        "name": "Detroit Pistons",
+        "shortName": "Pistons",
+        "abbreviation": "DET",
+        "normalizedName": "detroit pistons",
+        "location": "Detroit",
+        "nickname": "Pistons",
+        "color": "1d428a",
+        "alternateColor": "c8102e",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "9",
+        "name": "Golden State Warriors",
+        "shortName": "Warriors",
+        "abbreviation": "GS",
+        "normalizedName": "golden state warriors",
+        "location": "Golden State",
+        "nickname": "Warriors",
+        "color": "fdb927",
+        "alternateColor": "1d428a",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "10",
+        "name": "Houston Rockets",
+        "shortName": "Rockets",
+        "abbreviation": "HOU",
+        "normalizedName": "houston rockets",
+        "location": "Houston",
+        "nickname": "Rockets",
+        "color": "ce1141",
+        "alternateColor": "000000",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "11",
+        "name": "Indiana Pacers",
+        "shortName": "Pacers",
+        "abbreviation": "IND",
+        "normalizedName": "indiana pacers",
+        "location": "Indiana",
+        "nickname": "Pacers",
+        "color": "0c2340",
+        "alternateColor": "ffd520",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "12",
+        "name": "LA Clippers",
+        "shortName": "Clippers",
+        "abbreviation": "LAC",
+        "normalizedName": "la clippers",
+        "location": "LA",
+        "nickname": "Clippers",
+        "color": "12173f",
+        "alternateColor": "c8102e",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "13",
+        "name": "Los Angeles Lakers",
+        "shortName": "Lakers",
+        "abbreviation": "LAL",
+        "normalizedName": "los angeles lakers",
+        "location": "Los Angeles",
+        "nickname": "Lakers",
+        "color": "552583",
+        "alternateColor": "fdb927",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "29",
+        "name": "Memphis Grizzlies",
+        "shortName": "Grizzlies",
+        "abbreviation": "MEM",
+        "normalizedName": "memphis grizzlies",
+        "location": "Memphis",
+        "nickname": "Grizzlies",
+        "color": "5d76a9",
+        "alternateColor": "12173f",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "14",
+        "name": "Miami Heat",
+        "shortName": "Heat",
+        "abbreviation": "MIA",
+        "normalizedName": "miami heat",
+        "location": "Miami",
+        "nickname": "Heat",
+        "color": "98002e",
+        "alternateColor": "000000",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "15",
+        "name": "Milwaukee Bucks",
+        "shortName": "Bucks",
+        "abbreviation": "MIL",
+        "normalizedName": "milwaukee bucks",
+        "location": "Milwaukee",
+        "nickname": "Bucks",
+        "color": "00471b",
+        "alternateColor": "eee1c6",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "16",
+        "name": "Minnesota Timberwolves",
+        "shortName": "Timberwolves",
+        "abbreviation": "MIN",
+        "normalizedName": "minnesota timberwolves",
+        "location": "Minnesota",
+        "nickname": "Timberwolves",
+        "color": "266092",
+        "alternateColor": "79bc43",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "3",
+        "name": "New Orleans Pelicans",
+        "shortName": "Pelicans",
+        "abbreviation": "NO",
+        "normalizedName": "new orleans pelicans",
+        "location": "New Orleans",
+        "nickname": "Pelicans",
+        "color": "0a2240",
+        "alternateColor": "b4975a",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "18",
+        "name": "New York Knicks",
+        "shortName": "Knicks",
+        "abbreviation": "NY",
+        "normalizedName": "new york knicks",
+        "location": "New York",
+        "nickname": "Knicks",
+        "color": "1d428a",
+        "alternateColor": "f58426",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "25",
+        "name": "Oklahoma City Thunder",
+        "shortName": "Thunder",
+        "abbreviation": "OKC",
+        "normalizedName": "oklahoma city thunder",
+        "location": "Oklahoma City",
+        "nickname": "Thunder",
+        "color": "007ac1",
+        "alternateColor": "ef3b24",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "19",
+        "name": "Orlando Magic",
+        "shortName": "Magic",
+        "abbreviation": "ORL",
+        "normalizedName": "orlando magic",
+        "location": "Orlando",
+        "nickname": "Magic",
+        "color": "0150b5",
+        "alternateColor": "9ca0a3",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "20",
+        "name": "Philadelphia 76ers",
+        "shortName": "76ers",
+        "abbreviation": "PHI",
+        "normalizedName": "philadelphia 76ers",
+        "location": "Philadelphia",
+        "nickname": "76ers",
+        "color": "1d428a",
+        "alternateColor": "e01234",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "21",
+        "name": "Phoenix Suns",
+        "shortName": "Suns",
+        "abbreviation": "PHX",
+        "normalizedName": "phoenix suns",
+        "location": "Phoenix",
+        "nickname": "Suns",
+        "color": "29127a",
+        "alternateColor": "e56020",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "22",
+        "name": "Portland Trail Blazers",
+        "shortName": "Trail Blazers",
+        "abbreviation": "POR",
+        "normalizedName": "portland trail blazers",
+        "location": "Portland",
+        "nickname": "Trail Blazers",
+        "color": "e03a3e",
+        "alternateColor": "000000",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "23",
+        "name": "Sacramento Kings",
+        "shortName": "Kings",
+        "abbreviation": "SAC",
+        "normalizedName": "sacramento kings",
+        "location": "Sacramento",
+        "nickname": "Kings",
+        "color": "5a2d81",
+        "alternateColor": "6a7a82",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "24",
+        "name": "San Antonio Spurs",
+        "shortName": "Spurs",
+        "abbreviation": "SA",
+        "normalizedName": "san antonio spurs",
+        "location": "San Antonio",
+        "nickname": "Spurs",
+        "color": "000000",
+        "alternateColor": "c4ced4",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "28",
+        "name": "Toronto Raptors",
+        "shortName": "Raptors",
+        "abbreviation": "TOR",
+        "normalizedName": "toronto raptors",
+        "location": "Toronto",
+        "nickname": "Raptors",
+        "color": "d91244",
+        "alternateColor": "000000",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "26",
+        "name": "Utah Jazz",
+        "shortName": "Jazz",
+        "abbreviation": "UTAH",
+        "normalizedName": "utah jazz",
+        "location": "Utah",
+        "nickname": "Jazz",
+        "color": "4e008e",
+        "alternateColor": "79a3dc",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      },
+      {
+        "id": "27",
+        "name": "Washington Wizards",
+        "shortName": "Wizards",
+        "abbreviation": "WSH",
+        "normalizedName": "washington wizards",
+        "location": "Washington",
+        "nickname": "Wizards",
+        "color": "e31837",
+        "alternateColor": "002b5c",
+        "league": "NBA",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:38.681Z"
+      }
+    ],
+    "nfl": [
+      {
+        "id": "22",
+        "name": "Arizona Cardinals",
+        "shortName": "Cardinals",
+        "abbreviation": "ARI",
+        "normalizedName": "arizona cardinals",
+        "location": "Arizona",
+        "nickname": "Cardinals",
+        "color": "a40227",
+        "alternateColor": "ffffff",
+        "league": "NFL",
+        "record": {
+          "wins": 3,
+          "losses": 14,
+          "ties": 0,
+          "winPct": 0.1764706
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "1",
+        "name": "Atlanta Falcons",
+        "shortName": "Falcons",
+        "abbreviation": "ATL",
+        "normalizedName": "atlanta falcons",
+        "location": "Atlanta",
+        "nickname": "Falcons",
+        "color": "a71930",
+        "alternateColor": "000000",
+        "league": "NFL",
+        "record": {
+          "wins": 8,
+          "losses": 9,
+          "ties": 0,
+          "winPct": 0.47058824
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "33",
+        "name": "Baltimore Ravens",
+        "shortName": "Ravens",
+        "abbreviation": "BAL",
+        "normalizedName": "baltimore ravens",
+        "location": "Baltimore",
+        "nickname": "Ravens",
+        "color": "29126f",
+        "alternateColor": "000000",
+        "league": "NFL",
+        "record": {
+          "wins": 8,
+          "losses": 9,
+          "ties": 0,
+          "winPct": 0.47058824
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "2",
+        "name": "Buffalo Bills",
+        "shortName": "Bills",
+        "abbreviation": "BUF",
+        "normalizedName": "buffalo bills",
+        "location": "Buffalo",
+        "nickname": "Bills",
+        "color": "00338d",
+        "alternateColor": "d50a0a",
+        "league": "NFL",
+        "record": {
+          "wins": 12,
+          "losses": 5,
+          "ties": 0,
+          "winPct": 0.7058824
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "29",
+        "name": "Carolina Panthers",
+        "shortName": "Panthers",
+        "abbreviation": "CAR",
+        "normalizedName": "carolina panthers",
+        "location": "Carolina",
+        "nickname": "Panthers",
+        "color": "0085ca",
+        "alternateColor": "000000",
+        "league": "NFL",
+        "record": {
+          "wins": 8,
+          "losses": 9,
+          "ties": 0,
+          "winPct": 0.47058824
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "3",
+        "name": "Chicago Bears",
+        "shortName": "Bears",
+        "abbreviation": "CHI",
+        "normalizedName": "chicago bears",
+        "location": "Chicago",
+        "nickname": "Bears",
+        "color": "0b1c3a",
+        "alternateColor": "e64100",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "4",
+        "name": "Cincinnati Bengals",
+        "shortName": "Bengals",
+        "abbreviation": "CIN",
+        "normalizedName": "cincinnati bengals",
+        "location": "Cincinnati",
+        "nickname": "Bengals",
+        "color": "fb4f14",
+        "alternateColor": "000000",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "5",
+        "name": "Cleveland Browns",
+        "shortName": "Browns",
+        "abbreviation": "CLE",
+        "normalizedName": "cleveland browns",
+        "location": "Cleveland",
+        "nickname": "Browns",
+        "color": "472a08",
+        "alternateColor": "ff3c00",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "6",
+        "name": "Dallas Cowboys",
+        "shortName": "Cowboys",
+        "abbreviation": "DAL",
+        "normalizedName": "dallas cowboys",
+        "location": "Dallas",
+        "nickname": "Cowboys",
+        "color": "002a5c",
+        "alternateColor": "b0b7bc",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "7",
+        "name": "Denver Broncos",
+        "shortName": "Broncos",
+        "abbreviation": "DEN",
+        "normalizedName": "denver broncos",
+        "location": "Denver",
+        "nickname": "Broncos",
+        "color": "0a2343",
+        "alternateColor": "fc4c02",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "8",
+        "name": "Detroit Lions",
+        "shortName": "Lions",
+        "abbreviation": "DET",
+        "normalizedName": "detroit lions",
+        "location": "Detroit",
+        "nickname": "Lions",
+        "color": "0076b6",
+        "alternateColor": "bbbbbb",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "9",
+        "name": "Green Bay Packers",
+        "shortName": "Packers",
+        "abbreviation": "GB",
+        "normalizedName": "green bay packers",
+        "location": "Green Bay",
+        "nickname": "Packers",
+        "color": "204e32",
+        "alternateColor": "ffb612",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "34",
+        "name": "Houston Texans",
+        "shortName": "Texans",
+        "abbreviation": "HOU",
+        "normalizedName": "houston texans",
+        "location": "Houston",
+        "nickname": "Texans",
+        "color": "00143f",
+        "alternateColor": "c41230",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "11",
+        "name": "Indianapolis Colts",
+        "shortName": "Colts",
+        "abbreviation": "IND",
+        "normalizedName": "indianapolis colts",
+        "location": "Indianapolis",
+        "nickname": "Colts",
+        "color": "003b75",
+        "alternateColor": "ffffff",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "30",
+        "name": "Jacksonville Jaguars",
+        "shortName": "Jaguars",
+        "abbreviation": "JAX",
+        "normalizedName": "jacksonville jaguars",
+        "location": "Jacksonville",
+        "nickname": "Jaguars",
+        "color": "007487",
+        "alternateColor": "d7a22a",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "12",
+        "name": "Kansas City Chiefs",
+        "shortName": "Chiefs",
+        "abbreviation": "KC",
+        "normalizedName": "kansas city chiefs",
+        "location": "Kansas City",
+        "nickname": "Chiefs",
+        "color": "e31837",
+        "alternateColor": "ffb612",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "13",
+        "name": "Las Vegas Raiders",
+        "shortName": "Raiders",
+        "abbreviation": "LV",
+        "normalizedName": "las vegas raiders",
+        "location": "Las Vegas",
+        "nickname": "Raiders",
+        "color": "000000",
+        "alternateColor": "a5acaf",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "24",
+        "name": "Los Angeles Chargers",
+        "shortName": "Chargers",
+        "abbreviation": "LAC",
+        "normalizedName": "los angeles chargers",
+        "location": "Los Angeles",
+        "nickname": "Chargers",
+        "color": "0080c6",
+        "alternateColor": "ffc20e",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "14",
+        "name": "Los Angeles Rams",
+        "shortName": "Rams",
+        "abbreviation": "LAR",
+        "normalizedName": "los angeles rams",
+        "location": "Los Angeles",
+        "nickname": "Rams",
+        "color": "003594",
+        "alternateColor": "ffd100",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "15",
+        "name": "Miami Dolphins",
+        "shortName": "Dolphins",
+        "abbreviation": "MIA",
+        "normalizedName": "miami dolphins",
+        "location": "Miami",
+        "nickname": "Dolphins",
+        "color": "008e97",
+        "alternateColor": "fc4c02",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "16",
+        "name": "Minnesota Vikings",
+        "shortName": "Vikings",
+        "abbreviation": "MIN",
+        "normalizedName": "minnesota vikings",
+        "location": "Minnesota",
+        "nickname": "Vikings",
+        "color": "4f2683",
+        "alternateColor": "ffc62f",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "17",
+        "name": "New England Patriots",
+        "shortName": "Patriots",
+        "abbreviation": "NE",
+        "normalizedName": "new england patriots",
+        "location": "New England",
+        "nickname": "Patriots",
+        "color": "002a5c",
+        "alternateColor": "c60c30",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "18",
+        "name": "New Orleans Saints",
+        "shortName": "Saints",
+        "abbreviation": "NO",
+        "normalizedName": "new orleans saints",
+        "location": "New Orleans",
+        "nickname": "Saints",
+        "color": "d3bc8d",
+        "alternateColor": "000000",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "19",
+        "name": "New York Giants",
+        "shortName": "Giants",
+        "abbreviation": "NYG",
+        "normalizedName": "new york giants",
+        "location": "New York",
+        "nickname": "Giants",
+        "color": "003c7f",
+        "alternateColor": "c9243f",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "20",
+        "name": "New York Jets",
+        "shortName": "Jets",
+        "abbreviation": "NYJ",
+        "normalizedName": "new york jets",
+        "location": "New York",
+        "nickname": "Jets",
+        "color": "115740",
+        "alternateColor": "ffffff",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "21",
+        "name": "Philadelphia Eagles",
+        "shortName": "Eagles",
+        "abbreviation": "PHI",
+        "normalizedName": "philadelphia eagles",
+        "location": "Philadelphia",
+        "nickname": "Eagles",
+        "color": "06424d",
+        "alternateColor": "000000",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "23",
+        "name": "Pittsburgh Steelers",
+        "shortName": "Steelers",
+        "abbreviation": "PIT",
+        "normalizedName": "pittsburgh steelers",
+        "location": "Pittsburgh",
+        "nickname": "Steelers",
+        "color": "000000",
+        "alternateColor": "ffb612",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "25",
+        "name": "San Francisco 49ers",
+        "shortName": "49ers",
+        "abbreviation": "SF",
+        "normalizedName": "san francisco 49ers",
+        "location": "San Francisco",
+        "nickname": "49ers",
+        "color": "aa0000",
+        "alternateColor": "b3995d",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "26",
+        "name": "Seattle Seahawks",
+        "shortName": "Seahawks",
+        "abbreviation": "SEA",
+        "normalizedName": "seattle seahawks",
+        "location": "Seattle",
+        "nickname": "Seahawks",
+        "color": "002a5c",
+        "alternateColor": "69be28",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "27",
+        "name": "Tampa Bay Buccaneers",
+        "shortName": "Buccaneers",
+        "abbreviation": "TB",
+        "normalizedName": "tampa bay buccaneers",
+        "location": "Tampa Bay",
+        "nickname": "Buccaneers",
+        "color": "bd1c36",
+        "alternateColor": "3e3a35",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "10",
+        "name": "Tennessee Titans",
+        "shortName": "Titans",
+        "abbreviation": "TEN",
+        "normalizedName": "tennessee titans",
+        "location": "Tennessee",
+        "nickname": "Titans",
+        "color": "4b92db",
+        "alternateColor": "002a5c",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      },
+      {
+        "id": "28",
+        "name": "Washington Commanders",
+        "shortName": "Commanders",
+        "abbreviation": "WSH",
+        "normalizedName": "washington commanders",
+        "location": "Washington",
+        "nickname": "Commanders",
+        "color": "5a1414",
+        "alternateColor": "ffb612",
+        "league": "NFL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:41.203Z"
+      }
+    ],
+    "nhl": [
+      {
+        "id": "25",
+        "name": "Anaheim Ducks",
+        "shortName": "Ducks",
+        "abbreviation": "ANA",
+        "normalizedName": "anaheim ducks",
+        "location": "Anaheim",
+        "nickname": "Ducks",
+        "color": "fc4c02",
+        "alternateColor": "000000",
+        "league": "NHL",
+        "record": {
+          "wins": 28,
+          "losses": 22,
+          "ties": 0,
+          "winPct": 0.5566038
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "1",
+        "name": "Boston Bruins",
+        "shortName": "Bruins",
+        "abbreviation": "BOS",
+        "normalizedName": "boston bruins",
+        "location": "Boston",
+        "nickname": "Bruins",
+        "color": "231f20",
+        "alternateColor": "fdb71a",
+        "league": "NHL",
+        "record": {
+          "wins": 30,
+          "losses": 20,
+          "ties": 0,
+          "winPct": 0.5943396
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "2",
+        "name": "Buffalo Sabres",
+        "shortName": "Sabres",
+        "abbreviation": "BUF",
+        "normalizedName": "buffalo sabres",
+        "location": "Buffalo",
+        "nickname": "Sabres",
+        "color": "00468b",
+        "alternateColor": "fdb71a",
+        "league": "NHL",
+        "record": {
+          "wins": 29,
+          "losses": 17,
+          "ties": 0,
+          "winPct": 0.61764705
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "3",
+        "name": "Calgary Flames",
+        "shortName": "Flames",
+        "abbreviation": "CGY",
+        "normalizedName": "calgary flames",
+        "location": "Calgary",
+        "nickname": "Flames",
+        "color": "dd1a32",
+        "alternateColor": "000000",
+        "league": "NHL",
+        "record": {
+          "wins": 21,
+          "losses": 25,
+          "ties": 0,
+          "winPct": 0.46153846
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "7",
+        "name": "Carolina Hurricanes",
+        "shortName": "Hurricanes",
+        "abbreviation": "CAR",
+        "normalizedName": "carolina hurricanes",
+        "location": "Carolina",
+        "nickname": "Hurricanes",
+        "color": "e30426",
+        "alternateColor": "000000",
+        "league": "NHL",
+        "record": {
+          "wins": 32,
+          "losses": 15,
+          "ties": 0,
+          "winPct": 0.66346157
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "4",
+        "name": "Chicago Blackhawks",
+        "shortName": "Blackhawks",
+        "abbreviation": "CHI",
+        "normalizedName": "chicago blackhawks",
+        "location": "Chicago",
+        "nickname": "Blackhawks",
+        "color": "e31937",
+        "alternateColor": "000000",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "17",
+        "name": "Colorado Avalanche",
+        "shortName": "Avalanche",
+        "abbreviation": "COL",
+        "normalizedName": "colorado avalanche",
+        "location": "Colorado",
+        "nickname": "Avalanche",
+        "color": "860038",
+        "alternateColor": "005ea3",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "29",
+        "name": "Columbus Blue Jackets",
+        "shortName": "Blue Jackets",
+        "abbreviation": "CBJ",
+        "normalizedName": "columbus blue jackets",
+        "location": "Columbus",
+        "nickname": "Blue Jackets",
+        "color": "002d62",
+        "alternateColor": "e31937",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "9",
+        "name": "Dallas Stars",
+        "shortName": "Stars",
+        "abbreviation": "DAL",
+        "normalizedName": "dallas stars",
+        "location": "Dallas",
+        "nickname": "Stars",
+        "color": "20864c",
+        "alternateColor": "000000",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "5",
+        "name": "Detroit Red Wings",
+        "shortName": "Red Wings",
+        "abbreviation": "DET",
+        "normalizedName": "detroit red wings",
+        "location": "Detroit",
+        "nickname": "Red Wings",
+        "color": "e30526",
+        "alternateColor": "ffffff",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "6",
+        "name": "Edmonton Oilers",
+        "shortName": "Oilers",
+        "abbreviation": "EDM",
+        "normalizedName": "edmonton oilers",
+        "location": "Edmonton",
+        "nickname": "Oilers",
+        "color": "00205b",
+        "alternateColor": "ff4c00",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "26",
+        "name": "Florida Panthers",
+        "shortName": "Panthers",
+        "abbreviation": "FLA",
+        "normalizedName": "florida panthers",
+        "location": "Florida",
+        "nickname": "Panthers",
+        "color": "e51937",
+        "alternateColor": "002d62",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "8",
+        "name": "Los Angeles Kings",
+        "shortName": "Kings",
+        "abbreviation": "LA",
+        "normalizedName": "los angeles kings",
+        "location": "Los Angeles",
+        "nickname": "Kings",
+        "color": "121212",
+        "alternateColor": "a2aaad",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "30",
+        "name": "Minnesota Wild",
+        "shortName": "Wild",
+        "abbreviation": "MIN",
+        "normalizedName": "minnesota wild",
+        "location": "Minnesota",
+        "nickname": "Wild",
+        "color": "124734",
+        "alternateColor": "ae122a",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "10",
+        "name": "Montreal Canadiens",
+        "shortName": "Canadiens",
+        "abbreviation": "MTL",
+        "normalizedName": "montreal canadiens",
+        "location": "Montreal",
+        "nickname": "Canadiens",
+        "color": "c41230",
+        "alternateColor": "013a81",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "27",
+        "name": "Nashville Predators",
+        "shortName": "Predators",
+        "abbreviation": "NSH",
+        "normalizedName": "nashville predators",
+        "location": "Nashville",
+        "nickname": "Predators",
+        "color": "fdba31",
+        "alternateColor": "002d62",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "11",
+        "name": "New Jersey Devils",
+        "shortName": "Devils",
+        "abbreviation": "NJ",
+        "normalizedName": "new jersey devils",
+        "location": "New Jersey",
+        "nickname": "Devils",
+        "color": "e30b2b",
+        "alternateColor": "000000",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "12",
+        "name": "New York Islanders",
+        "shortName": "Islanders",
+        "abbreviation": "NYI",
+        "normalizedName": "new york islanders",
+        "location": "New York",
+        "nickname": "Islanders",
+        "color": "00529b",
+        "alternateColor": "f47d31",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "13",
+        "name": "New York Rangers",
+        "shortName": "Rangers",
+        "abbreviation": "NYR",
+        "normalizedName": "new york rangers",
+        "location": "New York",
+        "nickname": "Rangers",
+        "color": "0056ae",
+        "alternateColor": "e51937",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "14",
+        "name": "Ottawa Senators",
+        "shortName": "Senators",
+        "abbreviation": "OTT",
+        "normalizedName": "ottawa senators",
+        "location": "Ottawa",
+        "nickname": "Senators",
+        "color": "dd1a32",
+        "alternateColor": "b79257",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "15",
+        "name": "Philadelphia Flyers",
+        "shortName": "Flyers",
+        "abbreviation": "PHI",
+        "normalizedName": "philadelphia flyers",
+        "location": "Philadelphia",
+        "nickname": "Flyers",
+        "color": "fe5823",
+        "alternateColor": "000000",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "16",
+        "name": "Pittsburgh Penguins",
+        "shortName": "Penguins",
+        "abbreviation": "PIT",
+        "normalizedName": "pittsburgh penguins",
+        "location": "Pittsburgh",
+        "nickname": "Penguins",
+        "color": "000000",
+        "alternateColor": "fdb71a",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "18",
+        "name": "San Jose Sharks",
+        "shortName": "Sharks",
+        "abbreviation": "SJ",
+        "normalizedName": "san jose sharks",
+        "location": "San Jose",
+        "nickname": "Sharks",
+        "color": "00788a",
+        "alternateColor": "070707",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "124292",
+        "name": "Seattle Kraken",
+        "shortName": "Kraken",
+        "abbreviation": "SEA",
+        "normalizedName": "seattle kraken",
+        "location": "Seattle",
+        "nickname": "Kraken",
+        "color": "000d33",
+        "alternateColor": "a3dce4",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "19",
+        "name": "St. Louis Blues",
+        "shortName": "Blues",
+        "abbreviation": "STL",
+        "normalizedName": "st louis blues",
+        "location": "St. Louis",
+        "nickname": "Blues",
+        "color": "0070b9",
+        "alternateColor": "fdb71a",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "20",
+        "name": "Tampa Bay Lightning",
+        "shortName": "Lightning",
+        "abbreviation": "TB",
+        "normalizedName": "tampa bay lightning",
+        "location": "Tampa Bay",
+        "nickname": "Lightning",
+        "color": "003e7e",
+        "alternateColor": "ffffff",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "21",
+        "name": "Toronto Maple Leafs",
+        "shortName": "Maple Leafs",
+        "abbreviation": "TOR",
+        "normalizedName": "toronto maple leafs",
+        "location": "Toronto",
+        "nickname": "Maple Leafs",
+        "color": "003e7e",
+        "alternateColor": "ffffff",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "129764",
+        "name": "Utah Mammoth",
+        "shortName": "Mammoth",
+        "abbreviation": "UTAH",
+        "normalizedName": "utah mammoth",
+        "location": "Utah",
+        "nickname": "Mammoth",
+        "color": "000000",
+        "alternateColor": "7ab2e1",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "22",
+        "name": "Vancouver Canucks",
+        "shortName": "Canucks",
+        "abbreviation": "VAN",
+        "normalizedName": "vancouver canucks",
+        "location": "Vancouver",
+        "nickname": "Canucks",
+        "color": "003e7e",
+        "alternateColor": "008752",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "37",
+        "name": "Vegas Golden Knights",
+        "shortName": "Golden Knights",
+        "abbreviation": "VGK",
+        "normalizedName": "vegas golden knights",
+        "location": "Vegas",
+        "nickname": "Golden Knights",
+        "color": "344043",
+        "alternateColor": "b4975a",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "23",
+        "name": "Washington Capitals",
+        "shortName": "Capitals",
+        "abbreviation": "WSH",
+        "normalizedName": "washington capitals",
+        "location": "Washington",
+        "nickname": "Capitals",
+        "color": "d71830",
+        "alternateColor": "0b1f41",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      },
+      {
+        "id": "28",
+        "name": "Winnipeg Jets",
+        "shortName": "Jets",
+        "abbreviation": "WPG",
+        "normalizedName": "winnipeg jets",
+        "location": "Winnipeg",
+        "nickname": "Jets",
+        "color": "002d62",
+        "alternateColor": "c41230",
+        "league": "NHL",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:43.241Z"
+      }
+    ],
+    "mlb": [
+      {
+        "id": "29",
+        "name": "Arizona Diamondbacks",
+        "shortName": "Diamondbacks",
+        "abbreviation": "ARI",
+        "normalizedName": "arizona diamondbacks",
+        "location": "Arizona",
+        "nickname": "Diamondbacks",
+        "color": "aa182c",
+        "alternateColor": "000000",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "11",
+        "name": "Athletics",
+        "shortName": "Athletics",
+        "abbreviation": "ATH",
+        "normalizedName": "athletics",
+        "location": "Athletics",
+        "nickname": "Athletics",
+        "color": "003831",
+        "alternateColor": "efb21e",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "15",
+        "name": "Atlanta Braves",
+        "shortName": "Braves",
+        "abbreviation": "ATL",
+        "normalizedName": "atlanta braves",
+        "location": "Atlanta",
+        "nickname": "Braves",
+        "color": "0c2340",
+        "alternateColor": "ba0c2f",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "1",
+        "name": "Baltimore Orioles",
+        "shortName": "Orioles",
+        "abbreviation": "BAL",
+        "normalizedName": "baltimore orioles",
+        "location": "Baltimore",
+        "nickname": "Orioles",
+        "color": "df4601",
+        "alternateColor": "000000",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "2",
+        "name": "Boston Red Sox",
+        "shortName": "Red Sox",
+        "abbreviation": "BOS",
+        "normalizedName": "boston red sox",
+        "location": "Boston",
+        "nickname": "Red Sox",
+        "color": "0d2b56",
+        "alternateColor": "bd3039",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "16",
+        "name": "Chicago Cubs",
+        "shortName": "Cubs",
+        "abbreviation": "CHC",
+        "normalizedName": "chicago cubs",
+        "location": "Chicago",
+        "nickname": "Cubs",
+        "color": "0e3386",
+        "alternateColor": "cc3433",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "4",
+        "name": "Chicago White Sox",
+        "shortName": "White Sox",
+        "abbreviation": "CHW",
+        "normalizedName": "chicago white sox",
+        "location": "Chicago",
+        "nickname": "White Sox",
+        "color": "000000",
+        "alternateColor": "c4ced4",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "17",
+        "name": "Cincinnati Reds",
+        "shortName": "Reds",
+        "abbreviation": "CIN",
+        "normalizedName": "cincinnati reds",
+        "location": "Cincinnati",
+        "nickname": "Reds",
+        "color": "c6011f",
+        "alternateColor": "ffffff",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "5",
+        "name": "Cleveland Guardians",
+        "shortName": "Guardians",
+        "abbreviation": "CLE",
+        "normalizedName": "cleveland guardians",
+        "location": "Cleveland",
+        "nickname": "Guardians",
+        "color": "002b5c",
+        "alternateColor": "e31937",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "27",
+        "name": "Colorado Rockies",
+        "shortName": "Rockies",
+        "abbreviation": "COL",
+        "normalizedName": "colorado rockies",
+        "location": "Colorado",
+        "nickname": "Rockies",
+        "color": "33006f",
+        "alternateColor": "000000",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "6",
+        "name": "Detroit Tigers",
+        "shortName": "Tigers",
+        "abbreviation": "DET",
+        "normalizedName": "detroit tigers",
+        "location": "Detroit",
+        "nickname": "Tigers",
+        "color": "0a2240",
+        "alternateColor": "ff4713",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "18",
+        "name": "Houston Astros",
+        "shortName": "Astros",
+        "abbreviation": "HOU",
+        "normalizedName": "houston astros",
+        "location": "Houston",
+        "nickname": "Astros",
+        "color": "002d62",
+        "alternateColor": "eb6e1f",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "7",
+        "name": "Kansas City Royals",
+        "shortName": "Royals",
+        "abbreviation": "KC",
+        "normalizedName": "kansas city royals",
+        "location": "Kansas City",
+        "nickname": "Royals",
+        "color": "004687",
+        "alternateColor": "7ab2dd",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "3",
+        "name": "Los Angeles Angels",
+        "shortName": "Angels",
+        "abbreviation": "LAA",
+        "normalizedName": "los angeles angels",
+        "location": "Los Angeles",
+        "nickname": "Angels",
+        "color": "ba0021",
+        "alternateColor": "c4ced4",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "19",
+        "name": "Los Angeles Dodgers",
+        "shortName": "Dodgers",
+        "abbreviation": "LAD",
+        "normalizedName": "los angeles dodgers",
+        "location": "Los Angeles",
+        "nickname": "Dodgers",
+        "color": "005a9c",
+        "alternateColor": "ffffff",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "28",
+        "name": "Miami Marlins",
+        "shortName": "Marlins",
+        "abbreviation": "MIA",
+        "normalizedName": "miami marlins",
+        "location": "Miami",
+        "nickname": "Marlins",
+        "color": "00a3e0",
+        "alternateColor": "000000",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "8",
+        "name": "Milwaukee Brewers",
+        "shortName": "Brewers",
+        "abbreviation": "MIL",
+        "normalizedName": "milwaukee brewers",
+        "location": "Milwaukee",
+        "nickname": "Brewers",
+        "color": "13294b",
+        "alternateColor": "ffc72c",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "9",
+        "name": "Minnesota Twins",
+        "shortName": "Twins",
+        "abbreviation": "MIN",
+        "normalizedName": "minnesota twins",
+        "location": "Minnesota",
+        "nickname": "Twins",
+        "color": "031f40",
+        "alternateColor": "e20e32",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "21",
+        "name": "New York Mets",
+        "shortName": "Mets",
+        "abbreviation": "NYM",
+        "normalizedName": "new york mets",
+        "location": "New York",
+        "nickname": "Mets",
+        "color": "002d72",
+        "alternateColor": "ff5910",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "10",
+        "name": "New York Yankees",
+        "shortName": "Yankees",
+        "abbreviation": "NYY",
+        "normalizedName": "new york yankees",
+        "location": "New York",
+        "nickname": "Yankees",
+        "color": "132448",
+        "alternateColor": "c4ced4",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "22",
+        "name": "Philadelphia Phillies",
+        "shortName": "Phillies",
+        "abbreviation": "PHI",
+        "normalizedName": "philadelphia phillies",
+        "location": "Philadelphia",
+        "nickname": "Phillies",
+        "color": "e81828",
+        "alternateColor": "003278",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "23",
+        "name": "Pittsburgh Pirates",
+        "shortName": "Pirates",
+        "abbreviation": "PIT",
+        "normalizedName": "pittsburgh pirates",
+        "location": "Pittsburgh",
+        "nickname": "Pirates",
+        "color": "000000",
+        "alternateColor": "fdb827",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "25",
+        "name": "San Diego Padres",
+        "shortName": "Padres",
+        "abbreviation": "SD",
+        "normalizedName": "san diego padres",
+        "location": "San Diego",
+        "nickname": "Padres",
+        "color": "2f241d",
+        "alternateColor": "ffc425",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "26",
+        "name": "San Francisco Giants",
+        "shortName": "Giants",
+        "abbreviation": "SF",
+        "normalizedName": "san francisco giants",
+        "location": "San Francisco",
+        "nickname": "Giants",
+        "color": "000000",
+        "alternateColor": "fd5a1e",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "12",
+        "name": "Seattle Mariners",
+        "shortName": "Mariners",
+        "abbreviation": "SEA",
+        "normalizedName": "seattle mariners",
+        "location": "Seattle",
+        "nickname": "Mariners",
+        "color": "005c5c",
+        "alternateColor": "0c2c56",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "24",
+        "name": "St. Louis Cardinals",
+        "shortName": "Cardinals",
+        "abbreviation": "STL",
+        "normalizedName": "st louis cardinals",
+        "location": "St. Louis",
+        "nickname": "Cardinals",
+        "color": "be0a14",
+        "alternateColor": "001541",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "30",
+        "name": "Tampa Bay Rays",
+        "shortName": "Rays",
+        "abbreviation": "TB",
+        "normalizedName": "tampa bay rays",
+        "location": "Tampa Bay",
+        "nickname": "Rays",
+        "color": "092c5c",
+        "alternateColor": "8fbce6",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "13",
+        "name": "Texas Rangers",
+        "shortName": "Rangers",
+        "abbreviation": "TEX",
+        "normalizedName": "texas rangers",
+        "location": "Texas",
+        "nickname": "Rangers",
+        "color": "003278",
+        "alternateColor": "c0111f",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "14",
+        "name": "Toronto Blue Jays",
+        "shortName": "Blue Jays",
+        "abbreviation": "TOR",
+        "normalizedName": "toronto blue jays",
+        "location": "Toronto",
+        "nickname": "Blue Jays",
+        "color": "134a8e",
+        "alternateColor": "6cace5",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      },
+      {
+        "id": "20",
+        "name": "Washington Nationals",
+        "shortName": "Nationals",
+        "abbreviation": "WSH",
+        "normalizedName": "washington nationals",
+        "location": "Washington",
+        "nickname": "Nationals",
+        "color": "ab0003",
+        "alternateColor": "11225b",
+        "league": "MLB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:45.284Z"
+      }
+    ],
+    "ncaab": [
+      {
+        "id": "44",
+        "name": "American University Eagles",
+        "shortName": "American",
+        "abbreviation": "AMER",
+        "normalizedName": "american university eagles",
+        "location": "American University",
+        "nickname": "Eagles",
+        "color": "c41130",
+        "alternateColor": "c8102e",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "9",
+        "name": "Arizona State Sun Devils",
+        "shortName": "Arizona St",
+        "abbreviation": "ASU",
+        "normalizedName": "arizona state sun devils",
+        "location": "Arizona State",
+        "nickname": "Sun Devils",
+        "color": "8e0c3a",
+        "alternateColor": "ffc72c",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "12",
+        "name": "Arizona Wildcats",
+        "shortName": "Arizona",
+        "abbreviation": "ARIZ",
+        "normalizedName": "arizona wildcats",
+        "location": "Arizona",
+        "nickname": "Wildcats",
+        "color": "0c234b",
+        "alternateColor": "ab0520",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "8",
+        "name": "Arkansas Razorbacks",
+        "shortName": "Arkansas",
+        "abbreviation": "ARK",
+        "normalizedName": "arkansas razorbacks",
+        "location": "Arkansas",
+        "nickname": "Razorbacks",
+        "color": "a41f35",
+        "alternateColor": "ffffff",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "2",
+        "name": "Auburn Tigers",
+        "shortName": "Auburn",
+        "abbreviation": "AUB",
+        "normalizedName": "auburn tigers",
+        "location": "Auburn",
+        "nickname": "Tigers",
+        "color": "002b5c",
+        "alternateColor": "f26522",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "91",
+        "name": "Bellarmine Knights",
+        "shortName": "Bellarmine",
+        "abbreviation": "BELL",
+        "normalizedName": "bellarmine knights",
+        "location": "Bellarmine",
+        "nickname": "Knights",
+        "color": "000000",
+        "alternateColor": null,
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "68",
+        "name": "Boise State Broncos",
+        "shortName": "Boise St",
+        "abbreviation": "BOIS",
+        "normalizedName": "boise state broncos",
+        "location": "Boise State",
+        "nickname": "Broncos",
+        "color": "0033a0",
+        "alternateColor": "fa4616",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "71",
+        "name": "Bradley Braves",
+        "shortName": "Bradley",
+        "abbreviation": "BRAD",
+        "normalizedName": "bradley braves",
+        "location": "Bradley",
+        "nickname": "Braves",
+        "color": "b70002",
+        "alternateColor": "c0c0c0",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "13",
+        "name": "Cal Poly Mustangs",
+        "shortName": "Cal Poly",
+        "abbreviation": "CP",
+        "normalizedName": "cal poly mustangs",
+        "location": "Cal Poly",
+        "nickname": "Mustangs",
+        "color": "1E4D2B",
+        "alternateColor": "eed897",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "25",
+        "name": "California Golden Bears",
+        "shortName": "California",
+        "abbreviation": "CAL",
+        "normalizedName": "california golden bears",
+        "location": "California",
+        "nickname": "Golden Bears",
+        "color": "031522",
+        "alternateColor": "ffc423",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "38",
+        "name": "Colorado Buffaloes",
+        "shortName": "Colorado",
+        "abbreviation": "COLO",
+        "normalizedName": "colorado buffaloes",
+        "location": "Colorado",
+        "nickname": "Buffaloes",
+        "color": "000000",
+        "alternateColor": "cfb87c",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "36",
+        "name": "Colorado State Rams",
+        "shortName": "Colorado St",
+        "abbreviation": "CSU",
+        "normalizedName": "colorado state rams",
+        "location": "Colorado State",
+        "nickname": "Rams",
+        "color": "1e4d2b",
+        "alternateColor": "c8c372",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "48",
+        "name": "Delaware Blue Hens",
+        "shortName": "Delaware",
+        "abbreviation": "DEL",
+        "normalizedName": "delaware blue hens",
+        "location": "Delaware",
+        "nickname": "Blue Hens",
+        "color": "033594",
+        "alternateColor": "e8ce31",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "50",
+        "name": "Florida A&M Rattlers",
+        "shortName": "Florida A&M",
+        "abbreviation": "FAMU",
+        "normalizedName": "florida am rattlers",
+        "location": "Florida A&M",
+        "nickname": "Rattlers",
+        "color": "F89728",
+        "alternateColor": "00843d",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "57",
+        "name": "Florida Gators",
+        "shortName": "Florida",
+        "abbreviation": "FLA",
+        "normalizedName": "florida gators",
+        "location": "Florida",
+        "nickname": "Gators",
+        "color": "0021a5",
+        "alternateColor": "fa4616",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "52",
+        "name": "Florida State Seminoles",
+        "shortName": "Florida St",
+        "abbreviation": "FSU",
+        "normalizedName": "florida state seminoles",
+        "location": "Florida State",
+        "nickname": "Seminoles",
+        "color": "782f40",
+        "alternateColor": "ceb888",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "45",
+        "name": "George Washington Revolutionaries",
+        "shortName": "G Washington",
+        "abbreviation": "GW",
+        "normalizedName": "george washington revolutionaries",
+        "location": "George Washington",
+        "nickname": "Revolutionaries",
+        "color": "002843",
+        "alternateColor": "e8d2a1",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "46",
+        "name": "Georgetown Hoyas",
+        "shortName": "Georgetown",
+        "abbreviation": "GTWN",
+        "normalizedName": "georgetown hoyas",
+        "location": "Georgetown",
+        "nickname": "Hoyas",
+        "color": "110E42",
+        "alternateColor": "001c58",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "61",
+        "name": "Georgia Bulldogs",
+        "shortName": "Georgia",
+        "abbreviation": "UGA",
+        "normalizedName": "georgia bulldogs",
+        "location": "Georgia",
+        "nickname": "Bulldogs",
+        "color": "ba0c2f",
+        "alternateColor": "ffffff",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "59",
+        "name": "Georgia Tech Yellow Jackets",
+        "shortName": "Georgia Tech",
+        "abbreviation": "GT",
+        "normalizedName": "georgia tech yellow jackets",
+        "location": "Georgia Tech",
+        "nickname": "Yellow Jackets",
+        "color": "003057",
+        "alternateColor": "b3a369",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "62",
+        "name": "Hawai'i Rainbow Warriors",
+        "shortName": "Hawai’i",
+        "abbreviation": "HAW",
+        "normalizedName": "hawaii rainbow warriors",
+        "location": "Hawai'i",
+        "nickname": "Rainbow Warriors",
+        "color": "003420",
+        "alternateColor": "ffffff",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "47",
+        "name": "Howard Bison",
+        "shortName": "Howard",
+        "abbreviation": "HOW",
+        "normalizedName": "howard bison",
+        "location": "Howard",
+        "nickname": "Bison",
+        "color": "003a63",
+        "alternateColor": "e51937",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "85",
+        "name": "IU Indianapolis Jaguars",
+        "shortName": "IU Indy",
+        "abbreviation": "IUIN",
+        "normalizedName": "iu indianapolis jaguars",
+        "location": "IU Indianapolis",
+        "nickname": "Jaguars",
+        "color": "A81F30",
+        "alternateColor": "d59f0f",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "70",
+        "name": "Idaho Vandals",
+        "shortName": "Idaho",
+        "abbreviation": "IDHO",
+        "normalizedName": "idaho vandals",
+        "location": "Idaho",
+        "nickname": "Vandals",
+        "color": "000000",
+        "alternateColor": "8c6e4a",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "84",
+        "name": "Indiana Hoosiers",
+        "shortName": "Indiana",
+        "abbreviation": "IU",
+        "normalizedName": "indiana hoosiers",
+        "location": "Indiana",
+        "nickname": "Hoosiers",
+        "color": "990000",
+        "alternateColor": "edebeb",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "66",
+        "name": "Iowa State Cyclones",
+        "shortName": "Iowa State",
+        "abbreviation": "ISU",
+        "normalizedName": "iowa state cyclones",
+        "location": "Iowa State",
+        "nickname": "Cyclones",
+        "color": "822433",
+        "alternateColor": "fdca2f",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "55",
+        "name": "Jacksonville State Gamecocks",
+        "shortName": "Jax State",
+        "abbreviation": "JXST",
+        "normalizedName": "jacksonville state gamecocks",
+        "location": "Jacksonville State",
+        "nickname": "Gamecocks",
+        "color": "b50500",
+        "alternateColor": "b5b7ba",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "96",
+        "name": "Kentucky Wildcats",
+        "shortName": "Kentucky",
+        "abbreviation": "UK",
+        "normalizedName": "kentucky wildcats",
+        "location": "Kentucky",
+        "nickname": "Wildcats",
+        "color": "0033a0",
+        "alternateColor": "ffffff",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "97",
+        "name": "Louisville Cardinals",
+        "shortName": "Louisville",
+        "abbreviation": "LOU",
+        "normalizedName": "louisville cardinals",
+        "location": "Louisville",
+        "nickname": "Cardinals",
+        "color": "c9001f",
+        "alternateColor": "000000",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "93",
+        "name": "Murray State Racers",
+        "shortName": "Murray St",
+        "abbreviation": "MUR",
+        "normalizedName": "murray state racers",
+        "location": "Murray State",
+        "nickname": "Racers",
+        "color": "002148",
+        "alternateColor": "000e00",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "94",
+        "name": "Northern Kentucky Norse",
+        "shortName": "N Kentucky",
+        "abbreviation": "NKU",
+        "normalizedName": "northern kentucky norse",
+        "location": "Northern Kentucky",
+        "nickname": "Norse",
+        "color": "ffc82e",
+        "alternateColor": "000000",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "77",
+        "name": "Northwestern Wildcats",
+        "shortName": "Northwestern",
+        "abbreviation": "NU",
+        "normalizedName": "northwestern wildcats",
+        "location": "Northwestern",
+        "nickname": "Wildcats",
+        "color": "582c83",
+        "alternateColor": "ffffff",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "87",
+        "name": "Notre Dame Fighting Irish",
+        "shortName": "Notre Dame",
+        "abbreviation": "ND",
+        "normalizedName": "notre dame fighting irish",
+        "location": "Notre Dame",
+        "nickname": "Fighting Irish",
+        "color": "0c2340",
+        "alternateColor": "c99700",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "16",
+        "name": "Sacramento State Hornets",
+        "shortName": "Sacramento St",
+        "abbreviation": "SAC",
+        "normalizedName": "sacramento state hornets",
+        "location": "Sacramento State",
+        "nickname": "Hornets",
+        "color": "00573C",
+        "alternateColor": "cdb97d",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "21",
+        "name": "San Diego State Aztecs",
+        "shortName": "San Diego St",
+        "abbreviation": "SDSU",
+        "normalizedName": "san diego state aztecs",
+        "location": "San Diego State",
+        "nickname": "Aztecs",
+        "color": "c41230",
+        "alternateColor": "000000",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "23",
+        "name": "San José State Spartans",
+        "shortName": "San José St",
+        "abbreviation": "SJSU",
+        "normalizedName": "san jos state spartans",
+        "location": "San José State",
+        "nickname": "Spartans",
+        "color": "005893",
+        "alternateColor": "fdba31",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "6",
+        "name": "South Alabama Jaguars",
+        "shortName": "South Alabama",
+        "abbreviation": "USA",
+        "normalizedName": "south alabama jaguars",
+        "location": "South Alabama",
+        "nickname": "Jaguars",
+        "color": "003E7E",
+        "alternateColor": null,
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "58",
+        "name": "South Florida Bulls",
+        "shortName": "South Florida",
+        "abbreviation": "USF",
+        "normalizedName": "south florida bulls",
+        "location": "South Florida",
+        "nickname": "Bulls",
+        "color": "004A36",
+        "alternateColor": "231f20",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "79",
+        "name": "Southern Illinois Salukis",
+        "shortName": "S Illinois",
+        "abbreviation": "SIU",
+        "normalizedName": "southern illinois salukis",
+        "location": "Southern Illinois",
+        "nickname": "Salukis",
+        "color": "85283D",
+        "alternateColor": "c2c3c0",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "24",
+        "name": "Stanford Cardinal",
+        "shortName": "Stanford",
+        "abbreviation": "STAN",
+        "normalizedName": "stanford cardinal",
+        "location": "Stanford",
+        "nickname": "Cardinal",
+        "color": "8c1515",
+        "alternateColor": "ffffff",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "56",
+        "name": "Stetson Hatters",
+        "shortName": "Stetson",
+        "abbreviation": "STET",
+        "normalizedName": "stetson hatters",
+        "location": "Stetson",
+        "nickname": "Hatters",
+        "color": "0a5640",
+        "alternateColor": "56854e",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "5",
+        "name": "UAB Blazers",
+        "shortName": "UAB",
+        "abbreviation": "UAB",
+        "normalizedName": "uab blazers",
+        "location": "UAB",
+        "nickname": "Blazers",
+        "color": "054338",
+        "alternateColor": "ffc845",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "27",
+        "name": "UC Riverside Highlanders",
+        "shortName": "UC Riverside",
+        "abbreviation": "UCR",
+        "normalizedName": "uc riverside highlanders",
+        "location": "UC Riverside",
+        "nickname": "Highlanders",
+        "color": "14234F",
+        "alternateColor": null,
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "28",
+        "name": "UC San Diego Tritons",
+        "shortName": "UC San Diego",
+        "abbreviation": "UCSD",
+        "normalizedName": "uc san diego tritons",
+        "location": "UC San Diego",
+        "nickname": "Tritons",
+        "color": "000000",
+        "alternateColor": "ffcd00",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "26",
+        "name": "UCLA Bruins",
+        "shortName": "UCLA",
+        "abbreviation": "UCLA",
+        "normalizedName": "ucla bruins",
+        "location": "UCLA",
+        "nickname": "Bruins",
+        "color": "2774ae",
+        "alternateColor": "f2a900",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "41",
+        "name": "UConn Huskies",
+        "shortName": "UConn",
+        "abbreviation": "CONN",
+        "normalizedName": "uconn huskies",
+        "location": "UConn",
+        "nickname": "Huskies",
+        "color": "0c2340",
+        "alternateColor": "f1f2f3",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "82",
+        "name": "UIC Flames",
+        "shortName": "UIC",
+        "abbreviation": "UIC",
+        "normalizedName": "uic flames",
+        "location": "UIC",
+        "nickname": "Flames",
+        "color": "001e62",
+        "alternateColor": "d50032",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "30",
+        "name": "USC Trojans",
+        "shortName": "USC",
+        "abbreviation": "USC",
+        "normalizedName": "usc trojans",
+        "location": "USC",
+        "nickname": "Trojans",
+        "color": "9e2237",
+        "alternateColor": "ffcc00",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "98",
+        "name": "Western Kentucky Hilltoppers",
+        "shortName": "Western KY",
+        "abbreviation": "WKU",
+        "normalizedName": "western kentucky hilltoppers",
+        "location": "Western Kentucky",
+        "nickname": "Hilltoppers",
+        "color": "F32026",
+        "alternateColor": "b3b5b8",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      },
+      {
+        "id": "43",
+        "name": "Yale Bulldogs",
+        "shortName": "Yale",
+        "abbreviation": "YALE",
+        "normalizedName": "yale bulldogs",
+        "location": "Yale",
+        "nickname": "Bulldogs",
+        "color": "004a81",
+        "alternateColor": "286dc0",
+        "league": "NCAAB",
+        "record": {
+          "wins": null,
+          "losses": null,
+          "ties": null,
+          "winPct": null
+        },
+        "stats": {
+          "pointsPerGame": null,
+          "pointsAllowed": null,
+          "totalYards": null,
+          "passingYards": null,
+          "rushingYards": null
+        },
+        "lastUpdated": "2026-01-27T10:44:47.552Z"
+      }
+    ]
+  },
+  "_meta": {
+    "totalTeams": 174,
+    "generatedBy": "scripts/update-team-stats.js",
+    "version": "1.0.0"
+  }
+}
