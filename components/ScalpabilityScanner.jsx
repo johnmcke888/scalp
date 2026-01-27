@@ -49,13 +49,28 @@ const ScalpabilityScanner = ({ pin }) => {
   // Filter markets
   const filteredMarkets = markets.filter(m => {
     if (filter === 'live') return m.event.live && !m.event.ended;
-    if (filter === 'hot') return m.scalpability.score >= 60;
+    if (filter === 'hot') return m.scalpability.score !== null && m.scalpability.score >= 60;
     return !m.event.ended; // 'all' excludes ended games
   });
 
-  // Stats
-  const hotCount = markets.filter(m => m.scalpability.score >= 60).length;
-  const liveCount = markets.filter(m => m.event.live && !m.event.ended).length;
+  // Sort: live games first, then by score (nulls last)
+  const sortedMarkets = [...filteredMarkets].sort((a, b) => {
+    // Live games first
+    if (a.event.live && !b.event.live) return -1;
+    if (!a.event.live && b.event.live) return 1;
+    
+    // Then by score (nulls last)
+    if (a.scalpability.score === null && b.scalpability.score === null) return 0;
+    if (a.scalpability.score === null) return 1;
+    if (b.scalpability.score === null) return -1;
+    
+    return b.scalpability.score - a.scalpability.score;
+  });
+
+  // Stats - only count live games for "hot"
+  const liveMarkets = markets.filter(m => m.event.live && !m.event.ended);
+  const hotCount = liveMarkets.filter(m => m.scalpability.score >= 60).length;
+  const liveCount = liveMarkets.length;
 
   return (
     <div style={styles.container}>
@@ -128,13 +143,13 @@ const ScalpabilityScanner = ({ pin }) => {
 
       {/* Market List */}
       <div style={styles.marketList}>
-        {filteredMarkets.length === 0 && !loading && (
+        {sortedMarkets.length === 0 && !loading && (
           <div style={styles.empty}>
             {filter === 'hot' ? 'No hot opportunities right now' : 'No markets available'}
           </div>
         )}
 
-        {filteredMarkets.map(market => {
+        {sortedMarkets.map(market => {
           const { scalpability, team1, team2, event, sport } = market;
           const isExpanded = expandedMarket === market.slug;
           
@@ -152,16 +167,31 @@ const ScalpabilityScanner = ({ pin }) => {
             >
               {/* Score Badge */}
               <div style={styles.scoreBadgeContainer}>
-                <div style={{
-                  ...styles.scoreBadge,
-                  background: scoreColor,
-                  boxShadow: scalpability.score >= 75 ? `0 0 20px ${scoreColor}` : 'none',
-                }}>
-                  {scalpability.score}
-                </div>
-                <span style={{ ...styles.ratingLabel, color: scoreColor }}>
-                  {scalpability.rating}
-                </span>
+                {scalpability.isUpcoming ? (
+                  // Upcoming game - no score, show clock icon
+                  <>
+                    <div style={styles.upcomingBadge}>
+                      ⏳
+                    </div>
+                    <span style={styles.upcomingLabel}>
+                      UPCOMING
+                    </span>
+                  </>
+                ) : (
+                  // Live or ended game - show score
+                  <>
+                    <div style={{
+                      ...styles.scoreBadge,
+                      background: scoreColor,
+                      boxShadow: scalpability.score >= 75 ? `0 0 20px ${scoreColor}` : 'none',
+                    }}>
+                      {scalpability.score}
+                    </div>
+                    <span style={{ ...styles.ratingLabel, color: scoreColor }}>
+                      {scalpability.rating}
+                    </span>
+                  </>
+                )}
               </div>
 
               {/* Market Info */}
@@ -215,6 +245,7 @@ const ScalpabilityScanner = ({ pin }) => {
                 <div style={styles.expandedSection}>
                   <div style={styles.breakdownTitle}>Score Breakdown</div>
                   <div style={styles.breakdownGrid}>
+                    {/* Time Remaining */}
                     <div style={styles.breakdownItem}>
                       <span style={styles.breakdownLabel}>Time Left</span>
                       <div style={styles.breakdownBar}>
@@ -228,6 +259,23 @@ const ScalpabilityScanner = ({ pin }) => {
                         {scalpability.breakdown.timeRemaining}%
                       </span>
                     </div>
+                    
+                    {/* Price Data - Show actual prices */}
+                    <div style={styles.breakdownItem}>
+                      <span style={styles.breakdownLabel}>Prices</span>
+                      <span style={styles.breakdownRawValue}>
+                        {team1?.name}: {team1?.price ? `${(team1.price * 100).toFixed(0)}¢` : '--'}
+                        {' vs '}
+                        {team2?.name}: {team2?.price ? `${(team2.price * 100).toFixed(0)}¢` : '--'}
+                      </span>
+                      <span style={styles.breakdownMeta}>
+                        Gap: {scalpability.breakdown.priceDiff 
+                          ? `${(scalpability.breakdown.priceDiff * 100).toFixed(0)}¢` 
+                          : '--'}
+                      </span>
+                    </div>
+                    
+                    {/* Price Uncertainty Bar */}
                     <div style={styles.breakdownItem}>
                       <span style={styles.breakdownLabel}>Price Uncertainty</span>
                       <div style={styles.breakdownBar}>
@@ -241,19 +289,48 @@ const ScalpabilityScanner = ({ pin }) => {
                         {scalpability.breakdown.priceUncertainty}%
                       </span>
                     </div>
-                    <div style={styles.breakdownItem}>
-                      <span style={styles.breakdownLabel}>Score Closeness</span>
-                      <div style={styles.breakdownBar}>
-                        <div style={{
-                          ...styles.breakdownFill,
-                          width: `${scalpability.breakdown.scoreCloseness}%`,
-                          background: '#22d3ee',
-                        }} />
+                    
+                    {/* Score Data - Show actual score */}
+                    {scalpability.breakdown.homeScore !== null && (
+                      <div style={styles.breakdownItem}>
+                        <span style={styles.breakdownLabel}>Score</span>
+                        <span style={styles.breakdownRawValue}>
+                          {scalpability.breakdown.homeScore} - {scalpability.breakdown.awayScore}
+                        </span>
+                        <span style={styles.breakdownMeta}>
+                          Diff: {scalpability.breakdown.scoreDiff} pts
+                        </span>
                       </div>
-                      <span style={styles.breakdownValue}>
-                        {scalpability.breakdown.scoreCloseness}%
-                      </span>
-                    </div>
+                    )}
+                    
+                    {/* Score Closeness Bar - only if we have score data */}
+                    {scalpability.breakdown.scoreCloseness !== null && (
+                      <div style={styles.breakdownItem}>
+                        <span style={styles.breakdownLabel}>Score Closeness</span>
+                        <div style={styles.breakdownBar}>
+                          <div style={{
+                            ...styles.breakdownFill,
+                            width: `${scalpability.breakdown.scoreCloseness}%`,
+                            background: '#22d3ee',
+                          }} />
+                        </div>
+                        <span style={styles.breakdownValue}>
+                          {scalpability.breakdown.scoreCloseness}%
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* No score data message for upcoming games */}
+                    {scalpability.breakdown.scoreCloseness === null && (
+                      <div style={styles.breakdownItem}>
+                        <span style={styles.breakdownLabel}>Score</span>
+                        <span style={styles.breakdownMeta}>
+                          No score data — game not started
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Mispricing alert */}
                     {scalpability.breakdown.mispricingBonus > 0 && (
                       <div style={styles.mispricingAlert}>
                         ⚠️ Potential mispricing detected (+{scalpability.breakdown.mispricingBonus} bonus)
@@ -533,6 +610,35 @@ const styles = {
     color: '#ffffff',
     width: 40,
     textAlign: 'right',
+  },
+  breakdownRawValue: {
+    fontSize: 14,
+    fontFamily: '"SF Mono", monospace',
+    color: '#ffffff',
+    fontWeight: 600,
+  },
+  breakdownMeta: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginLeft: 8,
+  },
+  upcomingBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 20,
+    background: '#1a1a1f',
+    border: '1px solid #333340',
+  },
+  upcomingLabel: {
+    fontSize: 9,
+    fontWeight: 600,
+    letterSpacing: 0.5,
+    color: '#6b7280',
+    marginTop: 4,
   },
   mispricingAlert: {
     padding: '8px 12px',

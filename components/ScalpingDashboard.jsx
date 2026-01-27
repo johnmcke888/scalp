@@ -339,6 +339,7 @@ const ScalpingDashboard = ({ pin }) => {
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState(null);
   const [balance, setBalance] = useState(null);
+  const [activeTab, setActiveTab] = useState('scanner'); // 'scanner' or 'history'
   const [lastSynced, setLastSynced] = useState(null);
   const [autoSyncCountdown, setAutoSyncCountdown] = useState(30);
   const [isMobile, setIsMobile] = useState(false);
@@ -1538,10 +1539,37 @@ const ScalpingDashboard = ({ pin }) => {
 
         {/* ===== DESKTOP GRID LAYOUT ===== */}
         <div style={s.desktopGridMobile}>
-            {/* ===== SCALPABILITY SCANNER ===== */}
-            <ScalpabilityScanner pin={pin} />
+            {/* ===== TAB NAVIGATION ===== */}
+            <div style={s.tabBar}>
+              <button
+                style={{
+                  ...s.tabBtn,
+                  ...(activeTab === 'scanner' ? s.tabBtnActive : {}),
+                }}
+                onClick={() => setActiveTab('scanner')}
+              >
+                🔥 Scanner
+              </button>
+              <button
+                style={{
+                  ...s.tabBtn,
+                  ...(activeTab === 'history' ? s.tabBtnActive : {}),
+                }}
+                onClick={() => setActiveTab('history')}
+              >
+                📊 History
+              </button>
+            </div>
 
-            {/* ===== PERFORMANCE SUMMARY ===== */}
+            {/* ===== SCALPABILITY SCANNER (Tab 1) ===== */}
+            {activeTab === 'scanner' && (
+              <ScalpabilityScanner pin={pin} />
+            )}
+
+            {/* ===== HISTORY SECTIONS (Tab 2) ===== */}
+            {activeTab === 'history' && (
+              <>
+                {/* PERFORMANCE SUMMARY */}
             {performanceMetrics && performanceMetrics.totalEvents > 0 && (
               <section style={s.performanceSection}>
             <div style={s.performanceHeader}>
@@ -1657,6 +1685,8 @@ const ScalpingDashboard = ({ pin }) => {
               onRefresh={() => fetchActivitiesData()}
               refreshing={activitiesLoading}
             />
+              </>
+            )}
 
             {/* ===== OPEN POSITIONS - Compact Cards with Always-Visible Sparklines ===== */}
             {positions.length > 0 && (
@@ -2560,6 +2590,30 @@ const s = {
     cursor: 'pointer',
     borderRadius: 6,
     transition: 'all 0.15s ease',
+  },
+  tabBar: {
+    display: 'flex',
+    gap: 8,
+    marginBottom: 24,
+    borderBottom: '1px solid #222228',
+    paddingBottom: 12,
+  },
+  tabBtn: {
+    padding: '12px 24px',
+    background: 'transparent',
+    border: '1px solid #333340',
+    color: '#6b7280',
+    fontSize: 14,
+    fontWeight: 500,
+    cursor: 'pointer',
+    borderRadius: 8,
+    fontFamily: 'inherit',
+    transition: 'all 0.15s ease',
+  },
+  tabBtnActive: {
+    background: '#1a1a1f',
+    borderColor: '#39ff14',
+    color: '#ffffff',
   },
   posTopRow: {
     display: 'flex',
